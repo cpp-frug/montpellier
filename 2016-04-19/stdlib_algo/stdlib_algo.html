@@ -13,7 +13,7 @@ layout: true
 ---
 class: center, middle, inverse
 
-# La bibliotheque standard C++
+# La bibliothèque standard C++
 
 ## Les conteneurs et algorithmes
 
@@ -44,27 +44,27 @@ Par [Loïc HAMOT]()
 - Les algorithmes
 - Les conteneurs
 
-#### La bibliotheque standard
-- La bibliotheque standard à été construite autours de la STL.
+#### La bibliothèque standard
+- La bibliothèque standard à été construite autour de la STL.
 - Aujourd'hui la STL n'existe plus dans la norme C++. 
-- Bien que certaine bibliotheques standards concerve la dénomination STL (STL Port), il est preferable de parler de bibliothèque standard, ou stdlib.
+- Bien que certaines bibliothèques standard conservent la dénomination STL (STL Port), il est préférable de parler de bibliothèque standard, ou stdlib.
 ]
 ---
 class: center, middle, inverse
 ##Le concept d’itérateur
 ---
 .left-column[
-##Le Concept d’itérateur
+##Le concept d’itérateur
 ### C'est quoi un itérateur?
 ]
 .right-column[
 - Il permet de parcourir un conteneur.
-- Ils sont généralement utilisé par paires : Un pour parcourir, un qui indique la fin.
-- L'itérateur de fin est en fait un itérateur *"past the end"*. Il ce situe juste après le dernier élément.
+- Ils sont généralement utilisés par paires : Un pour parcourir, un qui indique la fin.
+- L'itérateur de fin est en fait un itérateur *"past the end"*. Il se situe juste après le dernier élément.
 - Il permet l’interaction des algorithmes et des conteneurs.
-- Il permet l'application de n’importe quel algorithme a n’importe quel conteneur.
-- Il évite donc d’écrire C * A algorithme
-- Quand l'iterateur de début est égale a celui de fin, c'est que le range est vide.
+- Il permet l'application de n’importe quel algorithme à n’importe quel conteneur.
+- Il évite donc d’écrire C * A algorithmes
+- Quand l'itérateur de début est égale à celui de fin, c'est que le range est vide.
 
 ```C++
 while(iter != iter_end) {
@@ -77,7 +77,7 @@ while(iter != iter_end) {
 .left-column[
 ##Le concept d’itérateur
 ### C'est quoi un itérateur?
-### Les catégories d'itérateur
+### Les catégories d'itérateurs
 ]
 .right-column[
 <table style="font-size: 0.75em;">
@@ -105,11 +105,11 @@ class: center, middle, inverse
 ]
 .right-column[
 - Ils peuvent contenir des éléments copiables ou *movables*
-- La pluspart ont une politique d'allocation
-- Ils ne peuvent contenir des elements constants
-- Les algorithmes travail avec des itérateurs et non des conteneurs.
-- Du point de vu des algorithmes, tout ce qui peut fournir un itérateur de début et de fin est un conteneur.
-- Dans le C++98, on utilisait la méthode membre begin et end pour avoir les itérateur.
+- La plupart ont une politique d'allocation
+- Ils ne peuvent contenir des éléments constants
+- Les algorithmes travaillent avec des itérateurs et non des conteneurs.
+- Du point de vue des algorithmes, tout ce qui peut fournir un itérateur de début et de fin est un conteneur.
+- Dans le C++98, on utilisait la méthode membre begin et end pour avoir les itérateurs.
 
 ```C++
 for(auto iter = c.begin(), iter_end = c.end(); 
@@ -124,7 +124,7 @@ for(auto iter = c.begin(), iter_end = c.end();
 #### Avec C++11
 ]
 .right-column[
-- C++11 ajoute std::begin et std::end pour obtenir les iterateurs de debut et de fin.
+- C++11 ajoute std::begin et std::end pour obtenir les itérateurs de début et de fin.
 
 ```C++
 for(auto iter = begin(c), iter_end = end(c); 
@@ -132,7 +132,7 @@ for(auto iter = begin(c), iter_end = end(c);
     ++iter)
   std::cout << *iter;
 ```
-- C++11 ajout "range-based for loop" qui utilise appel std::begin et std::end.
+- C++11 ajoute "range-based for loop" qui utilise std::begin et std::end.
 
 ```C++
 for(auto value: container)
@@ -149,11 +149,11 @@ for(auto value: container)
 .right-column[
 ||
 |---|---
-|Container|Structure de donné qui permet l’accès aux éléments par un itérateur
-|Reversible|Utilise des itérateur bidiréctionelles
+|Container|Structure de donnée qui permet l’accès aux éléments par un itérateur
+|Reversible|Utilise des itérateurs bidirectionnels
 |AllocatorAware (C++11)|Utilise une politique l'allocation (std::allocator)
 |Sequence|Stock les éléments dans l'ordre d'insertion
-|Contiguous (C++17)|Ces éléments sont contiguë en mémoire
+|Contiguous (C++17)|Ces éléments sont contigus en mémoire
 |Associative|Associe une clé aux valeurs
 |UnorderedAssociative (C++11)|Associe une clé aux valeurs, mais ne trie pas les élément
 ]
@@ -167,13 +167,13 @@ class: center, middle, inverse
 ]
 .right-column[
 - Accès par index
-- Taille fixe, définit à la compilation
-- Éléments contiguë en mémoire
+- Taille fixe, défini à la compilation
+- Éléments contigus en mémoire
 - Random-access iterator
-- Insertion/surpression impossible
+- Insertion/suppression impossible
 - Allocation très rapide
-- Très proche de tableau statique C, mais permet des vérification à l’exécution.
-- Permet des vérification d'index a la compilation (std::get<X>)
+- Très proche des tableaux statiques C, mais permet des vérifications à l’exécution.
+- Permet des vérifications d'index à la compilation (std::get<X>)
 
 ```C++
 #include <array>
@@ -196,10 +196,10 @@ int main() {
 - Accès par index
 - Taille dynamique
 - Utilise un **std::allocator**
-- Éléments contiguë en mémoire
+- Éléments contigus en mémoire
 - Random-access iterator
 - Parfait pour insertion/suppression en fin
-- C'est le conteneur par defaut
+- C'est le conteneur par défaut
 
 ```C++
 #include <vector>
@@ -223,13 +223,13 @@ int main() {
 .right-column[
 - Conserve l'ordre d'insertion
 - Taille dynamique
-- C'est une liste doublement chainée. 
- - **std::forward_list** est simplement chainé.
+- C'est une liste doublement chaînée. 
+ - **std::forward_list** est simplement chaînée.
 - Utilise un **std::allocator**
-- Iterateur bidirectionelle 
+- Itérateur bidirectionnel 
  - forward pour **std::forward_list**
-- Parfait pour insertion/suppression alléaoire
-- Acces par index impossible
+- Parfait pour insertion/suppression aléatoire
+- Accès par index impossible
 
 ```C++
 #include <list>
@@ -260,12 +260,12 @@ Va afficher:
 - Implémente les concepts :  **Container**, **AllocatorAwareContainer**, **UnorderedAssociativeContainer**
 - Utilise généralement une table de hachage
 - Permet de rechercher par valeur avec une complexité constante
-- Insertion/suppression aléatoire ont une complexité constante
-- Idéale pour
+- Insertions/suppressions aléatoires ont une complexité constante
+- Idéal pour
  - Conteneur sans doublon
- - Test d'existance rapide
-- La version **std::multiset** autorise les doublon
-- La version **std::set** permet de trier les elements.
+ - Test d'existence rapide
+- La version **std::multiset** autorise les doublons
+- La version **std::set** permet de trier les éléments.
 
 ```C++
 #include <unordered_set>
@@ -291,12 +291,12 @@ int main() {
 .right-column[
 - Implémente les concepts :  **Container**, **AllocatorAware**, **UnorderedAssociative**
 - Utilise généralement une table de hachage
-- Une clé est assiciée a chaque element
+- Une clé est associée à chaque élément
 - Rechercher par clé avec une complexité constante
 - Insertion/suppression aléatoire avec complexité constante
-- La version **(unordered_)multimap** autorise les doublon de clés
-- La version **map** permet de trier les elements par la clé.
-- Usage : Conteneur assosiatif sans doublon de clé
+- La version **(unordered_)multimap** autorise les doublons de clés
+- La version **map** permet de trier les éléments par la clé.
+- Usage : Conteneur associatif sans doublon de clé
 
 ```C++
 #include <unordered_map>
@@ -324,7 +324,7 @@ int main() {
 ]
 .right-column[
 ####std::stack
-- Permet de limiter l'interface d'un conteneur de maniere à ne pouvoir l'utiliser que comme une pile (LIFO)
+- Permet de limiter l'interface d'un conteneur de manière à ne pouvoir l'utiliser que comme une pile (LIFO)
 
 ```C++
 #include <stack>
@@ -340,7 +340,7 @@ int main() {
 }
 ```
 ####std::queue
-- Permet de limiter l'interface d'un conteneur de maniere à ne pouvoir l'utiliser que comme une queue (FIFO)
+- Permet de limiter l'interface d'un conteneur de manière à ne pouvoir l'utiliser que comme une queue (FIFO)
 ]
 ---
 .left-column[
@@ -354,13 +354,13 @@ int main() {
 ###Conseils
 ]
 .right-column[
-- N'utilisez jamais un iterateur qui a été invalidé!
+- N'utilisez jamais un itérateur qui a été invalidé!
 - L’opérateur [] ne vérifie pas l'index.
-- Le comparateur (pour les **set**) doit inférieur **stricte**.
+- Le comparateur (pour les **set**) doit être inférieur **strict**.
 - N'utilisez pas de tableau **C**
-- Ne stockez pas d'objet polymorphiques dans les conteneurs (ou utilisez des pointers(intelligent) )
+- Ne stockez pas d'objets polymorphiques dans les conteneurs (ou utilisez des pointeurs(intelligents) )
 - Un élément d'un conteneur doit être copiable ou *movable*
-- Préférez les méthodes basées sur des ranges pour traiter des ranges. (ex: insert)
+- Préférez les méthodes basées sur des *range* pour traiter des *range*. (ex: insert)
 - Utilisez **std::vector** par défaut. 
  - Sinon, utilisez le conteneur approprié.
 - Construisez les conteneurs avec la syntax **()** pour la taille et la syntax **{}** pour une liste d'élément.
@@ -369,7 +369,7 @@ int main() {
 - Pour un simple parcours : *"range-based for loop"*
 - Utilisez **emplace** pour simplifier l'écriture
 - Utilisez la méthode **shrink_to_fit** pour libérer la mémoire des **std::vector**
-- En matière de performance, ne faite pas confiance à votre intuition : Mesurez.
+- En matière de performance, ne faites pas confiance à votre intuition : Mesurez.
 ]
 ---
 class: center, middle, inverse
@@ -380,7 +380,7 @@ class: center, middle, inverse
 ###std::fill
 ]
 .right-column[
-Remplit un range avec une valeur donnée.
+Rempli un range avec une valeur donnée.
 
 ```C++
 #include <algorithm>
@@ -432,9 +432,9 @@ Va afficher:
 ###std::find(_if)
 ]
 .right-column[
-- std::find : Trouve un element qui as une valeur donnée, et retourne un iterateur sur celle si, ou un iterator *"past-the-end"*
-- std::find_if : Idem mais recherche avec un predicat plutot qu'une valeur
-- std::find_if_not : Idem mais recherche une valeur pour laquel le predicat est faux
+- std::find : Trouve un élément qui a une valeur donnée, et retourne un itérateur sur celle-ci, ou un itérateur *"past-the-end"*
+- std::find_if : Idem mais recherche avec un prédicat plutôt qu'une valeur
+- std::find_if_not : Idem mais recherche une valeur pour laquelle le prédicat est faux
 
 ```C++
 #include <iostream>
@@ -462,8 +462,8 @@ Va afficher:
 ###std::count(_if)
 ]
 .right-column[
-- std::count : Compte les elements qui sont egale a une valeur donnée
-- std::count_if : Compte les elements qui conrespondant a un predicat donnée
+- std::count : Compte les éléments qui sont égaux à une valeur donnée
+- std::count_if : Compte les éléments qui correspondent à un prédicat donné
 
 ```C++
 #include <algorithm>
@@ -492,9 +492,9 @@ Va afficher:
 ###std::transform
 ]
 .right-column[
-- Applique une transformation a chaque element d'un range, et les insert dans un autre range.
+- Applique une transformation à chaque élément d'un range, et les insère dans un autre range.
 - Une version prend deux range en entrée.
-- Le range de sortie peut etre un range d'entrée
+- Le range de sortie peut être un range d'entrée
 
 ```C++
 #include <algorithm>
@@ -526,8 +526,8 @@ Va afficher:
 ###std::accumulate
 ]
 .right-column[
-- Calcule la comme de la valeur donnée avec tout les element dans le range.
-- Une seconde version peut utiliser un autre operateur que plus.
+- Calcule la somme de la valeur donnée avec tout les éléments dans le range.
+- Une seconde version peut utiliser un autre opérateur que plus.
 
 ```C++
 #include <iostream>
@@ -565,8 +565,8 @@ int main() {
 ]
 .right-column[
 - Trie les éléments du range dans l'ordre croissant
-- Les éléments sont comparés en utilisant l'operateur **<**
-- On peut aussi passer un comparateur personalisé
+- Les éléments sont comparés en utilisant l'opérateur **<**
+- On peut aussi passer un comparateur personnalisé
 
 ```C++
 #include <algorithm>
@@ -595,8 +595,8 @@ Va afficher:
 ]
 .right-column[
 - Place les éléments correspondant à la valeur ou au prédicat à la fin.
-- Retourne un iterateur *"past-the-end"* du nouveau range. (Formé des éléments que l'on garde)
-- Souvent utilisé avec **erase** pour reduire le conteneur.
+- Retourne un itérateur *"past-the-end"* du nouveau range. (Formé des éléments que l'on garde)
+- Souvent utilisé avec **erase** pour réduire le conteneur.
 
 ```C++
 #include <algorithm>
@@ -630,13 +630,13 @@ Va afficher:
 ###Conseils
 ]
 .right-column[
-- N'oubliez pas que l'iterateur de fin (**std::end**) pointe juste après le dernier élément.
+- N'oubliez pas que l'itérateur de fin (**std::end**) pointe juste après le dernier élément.
 - Les prédicats doivent être des fonctions pures
-- Préférez utiliser des algorithmes que des boucles écrites à la main.
-- Utilisez l'idiom erase-remove pour supprimer des elements d'un conteneur
+- Préférez utiliser des algorithmes plutôt que des boucles écrites à la main.
+- Utilisez l'idiom erase-remove pour supprimer des éléments d'un conteneur
 - Utilisez l’algorithme de recherche approprié
-- Utilisez l'algorithme de trie approprié
-- Préférez les foncteur aux fonction pour passer en argument d'un algorithme
+- Utilisez l'algorithme de tri approprié
+- Préférez les foncteurs aux fonctions pour passer en argument d'un algorithme
 ]
 ---
 .left-column[
