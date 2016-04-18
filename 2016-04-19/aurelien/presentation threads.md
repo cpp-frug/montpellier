@@ -1,13 +1,14 @@
 # Programmation parallèle et asynchrone en C++
 ## Plan
 
-- Threads
-- Pool de threads
+- Rappels sur les threads
 - Parallélisme vs Concurrence
-- Map/Reduce
-- OpenMP
 - Programmation LockFree (Non blocking algorithms)
+- Pool de threads
+- Boost ASIO
+- Map/Reduce
 - Promesses et objets futurs
+
 - Async (non blocking IO)
 - Coroutines
 
@@ -19,14 +20,14 @@
 Qu'est-ce qu'un thread?
 
 D'un point de vue technique, un *processus léger* est un ensemble de ressources système connues et gérées par l'OS:
-- des zones mémoires réservées (pile, TLS, ...)
-- un fil d'exécution supplémentaire dans l'ordonnanceur
+- des zones mémoires réservées (pile, TLS, contexte...)
+- un fil d'exécution enregistré auprès de l'ordonnanceur
 
 Mais d'un point de vue plus abstrait, quel est le concept implémenté?
 
 ---
 
-Un thread est une machine à états généraliste dont les changements d'état sont gérés de façon transparente par le système d'exploitation (en cours d'exécution, en attente, bloqué...).
+Un thread est automate fini dont les changements d'états sont gérés de façon transparente par le système d'exploitation (en exécution, en attente, bloqué...).
 - Quand un thread est bloqué (E/S, page fault...) ou interrompu par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*).
 
 (2:30 https://www.youtube.com/watch?v=wxXIbaJBZlE)
@@ -38,6 +39,7 @@ Note: d'un point de vue utilisateur, un thread n'est pas qu'un *fil d'exécution
 ## Les threads en C++11
 
 C++11 a introduit le support des threads au niveau du langage. Cela ne se résume pas au simple ajout de la bibliothèque `<thread>`, mais à la modification du modèle mémoire du langage.
+- Un thread est défini par le standard comme *un flot unique de contrôle dans un programme* ($1.10)
 
 Par exemple, l'initialisation (et non l'utilisation) d'objets statiques est maintenant thread-safe (garantie nécessaire à la bonne initialisation des mutex).
 
@@ -47,51 +49,69 @@ short n1 = 0;
 short n2 = 0;
 
 void thread1() {
-    while (n1 < 10000) {
+    while (true) {
         n1 += 1;
     }
 }
 void thread2() {
-    while (n2 < 10000) {
+    while (true) {
         n2 += 1;
     }
 }```
+---
+## Les threads en C++11
+### Travaux en cours
+
+C++11 a posé les bases sur lesquelles construire des primitives plus évoluées en terme de programmation parallèle. Le comité travaille maintenant à introduire de meilleures abstractions dans les années qui viennent. 
+En particulier:
+- Standardisation de Boost.ASIO
+- Algorithmes parallèles dans la STL
+- Future composables
+- Co-routines
 
 ---
 ## Parallélisme vs Concurrence
-Ce sont deux concepts bien distincts:
-- le parallélisme consiste à travailler en **parallèle** sur des jeux de données distincts (isolés). Chaque tâche ayant son propre espace de travail, il n'y a pas de précaution particulière à adopter.
-- La concurrence est l'accès simultané par plusieurs tâches à une même ressource. Cela peut se faire sans parallélisme (exemple: 
-- 
-- 
--  quand plusieurs tâches partagent une même donnée et qu'au moins l'une d'entre-elles la modifie, il y a risque de race condition. Les tâches sont alors en **concurrence** (compétition) pour se partager une même ressource qui devient un goulot d'étranglement. Une synchronisation (régulation) des accès devient nécessaire.
+La **concurrence** est l'accès simultané (compétitif) à une même ressource. Elle fait intervenir la notion de synchronisation.
+- Si au moins une tâche modifie une ressource pendant qu'au moins une autre la lit, une **data race** est possible. Il faut alors synchroniser (restreindre) l'accès à cette ressource partagée.
 
-En plus de compliquer le code, l'utilisation de primitives de synchronisation ralentit son exécution. Une règle (XXX) stipule que si votre code passe x% de son temps à se synchronizer, vous ne pourrez pas avoir plus de (100/X) threads qui s'exécutent en même temps (quelque soit le nombre de CPU):
-- 10% du temps à se synchronizer => 10 threads max à s'exécuter
-- 25% du temps à se synchronizer => 4 threads max à s'exécuter
+Le **parallélisme** consiste à exécuter de façon simultanée plusieurs tâches qui peuvent être totalement indépendante. Le parallélisme peut donc se faire sans concurrence et donc synchronisation explicite.
+- Idéalement chaque tâche travaille (en écriture) sur une espace mémoire qui lui est dédié. Sans risque de collision, il n'y a pas de précaution particulière à prendre.
 
-En pratique, à partir 4 CPU, il devient très facile de passer 30% de son temps à se synchronizer...
+L'utilisation directe des threads dans sonc ode tend à mélanger intimement ces deux aspects. Mais elles gagnent à être distinguées.
+
+Concrètement, la difficulté du multi-threading se trouve dans la concurrence, pas dans le parallélisme. L'idée des nombreux travaux en cours est de tendre vers un style explicitement parallèle en lieu et place d'une concurrence explicite.
+
+---
+## Le coût de la concurrence
+
+Une section critique est identifiée par un début (verouillage) et une fin (libération du verrou). Elle forme ainsi un goulot d'étranglement par lequel les flux parallèles sont contraints de se sérialiser ("dé-paralléliser").
+
+La [loi d'Amdahl](https://fr.wikipedia.org/wiki/Loi_d%27Amdahl) montre que le gain maximal attendu est inversement proportionnel à la taille du code non parallélisable (sections critiques):
+- 5% du temps en SC => vitesse x6 avec 8 coeurs
+- 10% du temps en SC => vitesse x3 avec 4 coeurs (x8 à partir de 32 coeurs!)
+- 25% du temps en SC => vitesse x3 avec 8 coeurs
 
 C'est pourquoi le temps passé dans les sections critiques doit être le plus court possible.
+- L'idéal est de ne pas avoir besoin de se synchroniser!
 
 ---
 ## Programmation lock-free
 
-Une section critique est identifiée par un début (prise d'un verrou) et une fin (libération d'un verrou). C'est cette opération de verouillage (lock) qui force les flux parallèles à se linéariser et qui limite donc la scalibilité du traitement.
+En général, on recourt à un verrou logiciel (mutex) pour éviter la corruption des données partagées. Mais certaines modification simples (effectuable en une seule instruction machine) peut-être sécurisées via des primitives spéciales du processeur (de type *compare and swap*).
+- Un support hardware est donc nécessaire
 
-En général, il est nécessaire de recourir à un verrou logiciel (mutex) lors de l'accès concurrent à ses données pour éviter leur corruption. Mais certaines opérations atomiques (effectuées en une seule fois) peuvent être sécurisées via des primitives spéciales du processeur (de type *compare and swap*).
-- un support hardware est donc nécessaire
+En réalité il y a toujours un verrouillage d'effectué mais au niveau hardware (cache du processeur)
+- c'est beaucoup plus rapide qu'un aller-retour dans le noyau de l'OS mais ça reste plus lent qu'une instruction machine classique
 
-En réalité il y a toujours un verrouillage d'effectué mais au niveau du processeur (au niveau du cache partagé et de la RAM)
-- c'est plus rapide mais ça reste plus lent qu'un accès classique non protégé (à cause 
+---
 
-La programmation *lock-free* est très tentante mais il est encore plus facile de faire des bêtises qu'avec les mutex:
+La programmation *lock-free* est très tentante mais elle se révèle encore plus difficile et subtile que l'utilisation correcte des mutex.
 
 ```cpp
 std::atomic<int> count{0};
 MyClass * ptr = nullptr;
 
-void alloc() {
+MyClass * useMyClass() {
     if (count == 0) {
         ptr = new MyClass;
     }
@@ -99,46 +119,54 @@ void alloc() {
     return ptr;
 }
 
-void release() {
+void releaseMyClass() {
     if (--count == 0) {
         delete ptr;
     }
-}
-```
-
----
-
-Certaines structures de données peuvent être implémentées sans lock via des primitives atomiques:
-- pile (stack)
-- liste simplement chaînées (queue)
-- set
-- table de hachage
-
-D'autres peuvent même être implémentées sans primitive atomique du tout:
-- liste avec producteur unique et consommateur unique (single-reader single-writer)
-
-Mais il semble impossible de le faire pour certaines structures de données classique commme la liste doublement chaînée (std::list).
+}```
 
 ---
 ## Boost.LockFree
+
+Certaines structures de données peuvent être implémentées sans lock via des primitives atomiques (stack, queue, set, hash map). D'autres en revanche semblent impossible à implémenter sans verrou global (std::list).
 
 Boost LockFree fournit des conteneurs capables de fonctionner sans lock:
 - queue
 - stack
 - single writer single producer queue
 
-On spécifie lors de leur instantiation si l'on souhaite un redimensionnement dynamique ou non:
+Ils sont adaptés au modèle producteur / consommateur.
+
+Le spsc_queue est une implémentation qui se passe même des primitives atomiques (ne dépend que des barrières mémoire) mais qui ne fonctionne que si elle est utilisée avec un seul producteur et un seul consommateur (single-reader single-writer)
+
+---
+
+## Boost.LockFree
+### Usage
+
+On spécifie lors de la declaration si l'on souhaite un redimensionnement dynamique ou non
 - auquel cas le conteneur peut être bloquant si un redimensionnement est nécessaire
 
 ```cpp
 
 ```
 ---
-## Thread pool
+## Utilisation de threads
+
+Une façon simple de régler le problème est de faire exécuter cette fonction dans un thread séparé.
+
+C'est une approche qui fonctionne bien quand on a un long traitement à effectuer en tâche de fond.
+
+Mais l'utilisation de threads devient problématique dès qu'on dépasse le nombre de CPU disponibles:
+  - un thread est une ressource système coûteuse (consommation mémoire de la pile dédiée, temps CPU lors des changements de contexte)
+
+Dans le cas d'un serveur où des milliers de clients peuvent se connecter pour télécharger des fichiers, cette solution n'est pas adaptée.
+---
+## Thread pools
 
 Dans la mesure où un thread est une ressource coûteuse à créer, une première façon d'abstraire leur utilisation est d'architecturer son code pour qu'il manipule des tâches dont l'exécution est déléguée à un objet spécifique (un *task runner*).
 
-Cet objet va en interne créer un groupe de threads constament en attente d'exécuter une nouvelle tâche. Le *task runner* s'occupe donc de répartir le travail en fonction de la capacité de la machine (nombre de CPU). L'intérêt majeur est:
+Cet objet va en interne créer un groupe de threads constament en attente d'exécuter une nouvelle tâche (des *worker threads*). Le *task runner* s'occupe donc de répartir le travail en fonction de la capacité de la machine (nombre de CPU). L'intérêt majeur est:
 - rentabiliser le coût de création d'un thread en le recyclant une fois sont travail terminé
 - rendre le code plus simple à lire et écrire via le concept de tâche 
 
@@ -167,6 +195,8 @@ for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
 threads.join_all();```
 
 En tant que tel, cette classe n'est donc pas très utile. Mais elle se combien bien avec Boost.Asio par exemple (qui au contraire ne s'occupe que de l'ordonancement de tâches à exécuter).
+
+Astuce: donner un identifiant (chaîne de caractères) aux tâches à exécuter qui sert à nommer temporairement le worker thread qui exécute notre tâche. Cela facilite le débogage sur des machines avec beaucoup de processeurs.
 
 ---
 ## Boost Asio
@@ -241,13 +271,7 @@ asio_work.reset();
 threads.join_all();```
 
 ---
-## Parallélisation de boucles
-
-OpenMP
-std::parallel_for
-
----
-## Parallélisation d'un traitement (map/reduce)
+## Parallélisation avec Map/Reduce (Qt)
 
 std::vector<int> numbers;
 
@@ -283,13 +307,14 @@ QtConcurrent::Map
 ---
 template: inverse
 
-## Concurrence
----
-## Producteur - Consommateur
-
-Boost.LockFree
 ---
 ## Async
+
+A l'usage les threads posent vite problème parce qu'ils ne sont pas composables
+- en particulier, retourner un résultat depuis un thread et le "brancher" comme entrée d'un autre thread n'est pas trivial
+
+### Async
+
 Principe: exécution asynchrone (concurrente) des entrées sorties.
 Bien qu'il y ait concurrence, il n'y a pas nécessairement parallélisme
   - Par exemple, lire sur plusieurs sockets depuis le même thread
@@ -303,6 +328,83 @@ Pour que les opérations de lecture/écriture soient asynchrones, elles doivent 
 
 Nécessite un support de la part du système d'exploitation
   - Windows: IOPC, Completion Routine, APC: lecture/écriture asynchrone possible sur les fichiers
+
+---
+## Comment ça marche?
+
+Le principe est de fournir des callbacks (lambdas) qui sont exécutées une fois l'opération demandée terminée.
+
+Sous Windows, on parle de Completion Routine.
+
+Les callbacks peuvent être chaînées entre-elles à la javascript.
+Exemple avec la PPL:
+```cpp
+async([]{
+    read();
+}).then([]{
+    write()
+});
+```
+On connecte ainsi des callback pour former un graphe.
+
+Les noeuds du graphe représentent les valeurs finales calculées qui sont manipulées via des promesses futures.
+
+Avec certaines bibliothèques, le fait d'abandonner un future propage l'annulation en amont dans le graphe (cancellable).
+
+La bibliothèque standard C++ n'offre aucune facilité de cette sorte.
+
+---
+## Travaux en cours du comité C++
+
+OpenMP
+
+Le comité C++ dispose d'un groupe d'étude dédié à ces questions: le WG XX Parallelism and Concurrency.
+
+Plusieurs propositions sont à l'étude:
+- Concurrency TS: améliorer std::future pour le rendre composable (std::future::thend). S'inspire de boost::future.
+- Coroutines
+- Algorithmes parallèles dans la STL (std::parallel_for, ...)
+
+Il y a peu de chances de voir cela intégré à C++17 (qui sera finalement une norme mineure) mais le compilateurs supportent déjà certaines de ces fonctionnalités expérimentales.
+
+
+---
+## Coroutines (resumable function)
+Le commité C++ focalise son travail sur l'ajout de coroutines à C++.
+
+Une routine classique (fonction, procédure) permet d'être appelée ainsi que de rendre la main à l'appelant.
+Une coroutine est une "routine généralisée" qui supporte comme opération supplémentaire d'être suspendue et relancée (là où elle avait été suspendue).
+
+On trouve ce mécanisme dans divers langages : C# (await/yield), Python, Ruby...
+
+Une coroutine est une fonction dont l'exécution peut être suspendue puis reprise.
+
+L'idée d'une coroutine est d'offrir une vue synchrone de plusieurs blocs de code conçus pour être exécutés de façon asynchrone.
+
+Nos callback précédentes sont regroupées au sein d'une même fonction ce qui rend le code beaucoup plus lisible.
+
+```cpp
+// La coroutine offre l'illusion d'un exécution synchrone
+future<void> f(){
+    co_await read();
+    co_return write()
+}
+
+auto r = co_await f();
+```
+
+Au final, c'est comme si on avait une routine synchrone classique. Sauf qu'une coroutine accepte d'être interrompue en plein milieu de son exécution.
+
+Elle reprendra là où elle s'était arrêtée à son prochain appel (au lieu de commencer au début de la fonction).
+
+Contrairement à la composition de future, les coroutines demandent un support spécifique au niveau du langage et donc une modification de ce dernier pour supporter de nouveaux mot-clés: co_await, co_yield, co_return.
+
+Les coroutines sont une proposition en cours d'étude par le comité.
+
+Elles sont supportées par Visual C++ 2015. Quid de Clang?
+
+Elles sont de type *stackless*, c.à.d que l'OS n'alloue pas de pile pour la coroutine: c'est au compilateur d'allouer la mémoire nécessaire sur le tas pour sauvegarder le contexte d'appel et le restaurer (activation frame). Cela demande plus de travail mais permet de créer des millions de coroutines.
+
 ---
 ## Exemple: envoie de (gros) fichier sur un serveur
 
@@ -324,19 +426,8 @@ Avantages de ce code synchrone:
 
 Inconvénient:
 - pendant que l'on envoie un fichier on ne peut rien faire d'autre
+
 ---
-## Utilisation de threads
-
-Une façon simple de régler le problème est de faire exécuter cette fonction dans un thread séparé.
-
-C'est une approche qui fonctionne bien quand on a un long traitement à effectuer en tâche de fond.
-
-Mais l'utilisation de threads devient problématique dès qu'on dépasse le nombre de CPU disponibles:
-  - un thread est une ressource système coûteuse (consommation mémoire de la pile dédiée, temps CPU lors des changements de contexte)
-
-Dans le cas d'un serveur où des milliers de clients peuvent se connecter pour télécharger des fichiers, cette solution n'est pas adaptée.
----
-La solution la plus performante est d'avoir un seul thread qui gère toutes les entrées-sorties sur la carte réseau.
 
 Chaque opération doit être courte et rendre rapidement la main pour permettre à une autre opération de s'exécuter.
 
@@ -400,102 +491,3 @@ void sendFileAsync(filesystem::path fileName, Socket &amp; socket) {
 			}
 		});
 	}```
----
-## Parallélisme et Concurrence
-
-Le comité C++ dispose d'un groupe d'étude dédié à ces questions: le WG XX Parallelism and Concurrency.
-
-Plusieurs propositions sont à l'étude:
-- Concurrency TS: améliorer std::future pour le rendre composable (std::future::thend). S'inspire de boost::future.
-- Coroutines
-
-Il y a peu de chances de voir cela intégré à C++17 (qui sera finalement une norme mineure) mais le compilateurs supportent déjà certaines de ces fonctionnalités expérimentales.
----
-## Comment ça marche?
-
-Le principe est de fournir des callbacks (lambdas) qui sont exécutées une fois l'opération demandée terminée.
-
-Sous Windows, on parle de Completion Routine.
-
-Les callbacks peuvent être chaînées entre-elles à la javascript.
-Exemple avec la PPL:
-```cpp
-async([]{
-    read();
-}).then([]{
-    write()
-});
-```
-On connecte ainsi des callback pour former un graphe.
-
-Les noeuds du graphe représentent les valeurs finales calculées qui sont manipulées via des promesses futures.
-
-Avec certaines bibliothèques, le fait d'abandonner un future propage l'annulation en amont dans le graphe (cancellable).
-
-La bibliothèque standard C++ n'offre aucune facilité de cette sorte.
----
-## Coroutines (resumable function)
-Le commité C++ focalise son travail sur l'ajout de coroutines à C++.
-
-Une routine classique (fonction, procédure) permet d'être appelée ainsi que de rendre la main à l'appelant.
-Une coroutine est une "routine généralisée" qui supporte comme opération supplémentaire d'être suspendue et relancée (là où elle avait été suspendue).
-
-On trouve ce mécanisme dans divers langages : C# (await/yield), Python, Ruby...
-
-Une coroutine est une fonction dont l'exécution peut être suspendue puis reprise.
-
-L'idée d'une coroutine est d'offrir une vue synchrone de plusieurs blocs de code conçus pour être exécutés de façon asynchrone.
-
-Nos callback précédentes sont regroupées au sein d'une même fonction ce qui rend le code beaucoup plus lisible.
-
-```cpp
-// La coroutine offre l'illusion d'un exécution synchrone
-future<void> f(){
-    co_await read();
-    co_return write()
-}
-
-auto r = co_await f();
-```
-
-Au final, c'est comme si on avait une routine synchrone classique. Sauf qu'une coroutine accepte d'être interrompue en plein milieu de son exécution.
-
-Elle reprendra là où elle s'était arrêtée à son prochain appel (au lieu de commencer au début de la fonction).
-
-Contrairement à la composition de future, les coroutines demandent un support spécifique au niveau du langage et donc une modification de ce dernier pour supporter de nouveaux mot-clés: co_await, co_yield, co_return.
-
-Les coroutines sont une proposition en cours d'étude par le comité.
-
-Elles sont supportées par Visual C++ 2015. Quid de Clang?
-
-Elles sont de type *stackless*, c.à.d que l'OS n'alloue pas de pile pour la coroutine: c'est au compilateur d'allouer la mémoire nécessaire sur le tas pour sauvegarder le contexte d'appel et le restaurer (activation frame). Cela demande plus de travail mais permet de créer des millions de coroutines.
-
----
-.left-column[
-  ## Boost. LockFree
-  ## Concurrence
-  ### Thread
-  ### Concurrence
-  ### Parallélisme
-  ### Race condition
-]
-.right-column[
-  Modèle traditionnel du producteur-consomateur.
-]
----
-.left-column[
-  ## Boost.Asio
-]
-.right-column[
-  A la base, il s'agit d'une bibliothèque de programmation réseau
-  En cours de normalisation (sous forme de TS)
-]
----
-Threads, async & future, Boost.Asio, coroutines
-
-```cpp
-class X {
-public:
-    int n; // OK
-};
-```
