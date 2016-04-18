@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Montpellier C++</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style-perso.css">
+  </head>
+  <body>
+    <textarea id="source">
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+#Montpellier C++
+19 avril 2016
+.footnote[[cpp-frug.github.io/montpellier/](http://cpp-frug.github.io/montpellier/)]
+---
+layout: false
+.left-column[
+  ## Programme de ce soir
+]
+.right-column[
+Présentations :
+- Fonctionnement du pipeline OpenGL
+
+- Utilisation des conteneurs et algorithmes de la bibliothèque standard
+
+- Tour d'horizon de la programmation parallèle et asynchrone en C++
+
+.footnote[.red[*] At least browsers try their best]
+]
+---
+name: last-page
+template: inverse
+
+## Programmation parallèle et asynchrone en C++
+
+Tour d'horizon de différentes possibilités
+
+Par [Aurélien Regat-Barrel]()
+---
+.left-column[
+  ## Quelques concepts
+]
+.right-column[
+- Threads
+- Paraléllisme
+- Concurrence
+- Programmation asynchrone
+- Future et promesse
+- Coroutines
+]
+---
+.left-column[
+  ## Threads
+]
+.right-column[
+Citation:
+> Quand un programmeur a un problème de performance, il pense aux threads. Maintenant, il proba deux lèmes.
+
+Un thread est une machine à état. C'est une abstraction générale qui montre vite ses limites.
+]
+---
+.left-column[
+  ## Parallélisme vs Concurrence
+]
+.right-column[
+Ce sont deux concepts très différents:
+- le parallélisme consiste à exécuter une même tâche sur des jeux de données différents. Il n'y a donc pas besoin
+
+Race condition:
+- quand au moins un thread écrit une données et qu'au moins un autre thread y accède.
+
+const et mutable en C++11
+]
+---
+Threads, async & future, Boost.Asio, coroutines
+---
+name: how
+
+.left-column[
+  ## How does it work?
+  ### - Markdown
+]
+.right-column[
+A Markdown-formatted chunk of text is transformed into individual slides by JavaScript running in the browser:
+
+```cpp
+class X {
+};
+```
+]
+---
+name: last-page
+template: inverse
+
+## Fonctionnement du pipeline OpenGL
+
+Par [Alexis Chol]()
+---
+name: last-page
+template: inverse
+
+## Apéro!
+    </textarea>
+    <script src="remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
