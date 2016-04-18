@@ -26,20 +26,20 @@ Mais d'un point de vue plus abstrait, quel est le concept implémenté?
 
 ---
 
-Un thread est une machine à états généraliste dont la particularité est d'être gérée par le système d'exploitation. Quand l'exécution d'un thread est bloquée (E/S, page fault...) ou interrompue par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*). C'est donc l'OS qui gère de façon transparente les diverses transitions d'états (en cours d'exécution, en attente, bloqué...).
-
+Un thread est une machine à états généraliste dont les changements d'état sont gérés de façon transparente par le système d'exploitation (en cours d'exécution, en attente, bloqué...).
+- Quand un thread est bloqué (E/S, page fault...) ou interrompu par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*).
 
 (2:30 https://www.youtube.com/watch?v=wxXIbaJBZlE)
 
-
-Un thread c'est aussi une pile d'exécution qui occupe un espace mémoire non négligeable. Combinée au coût des changements de contexte, cette abstraction à usage général montre vite ses limites quand on cherche à exécuter des centaines voire des milliers de tâches en parallèle.
+Note: d'un point de vue utilisateur, un thread n'est pas qu'un *fil d'exécution*, c'est aussi une pile qui occupe un espace mémoire non négligeable.
+- c'est une source importante de limitation à leur utilisation massive
 
 ---
-## const et mutable en C++11
+## Les threads en C++11
 
 C++11 a introduit le support des threads au niveau du langage. Cela ne se résume pas au simple ajout de la bibliothèque `<thread>`, mais à la modification du modèle mémoire du langage.
 
-Par exemple, l'initialisation (et non l'utilisation) d'objects statiques est maintenant thread-safe (garantie nécessaire à la bonne initialisation des mutex).
+Par exemple, l'initialisation (et non l'utilisation) d'objets statiques est maintenant thread-safe (garantie nécessaire à la bonne initialisation des mutex).
 
 Mais aussi, quel est le problème avec ce code en C++98?
 ```cpp
@@ -61,7 +61,10 @@ void thread2() {
 ## Parallélisme vs Concurrence
 Ce sont deux concepts bien distincts:
 - le parallélisme consiste à travailler en **parallèle** sur des jeux de données distincts (isolés). Chaque tâche ayant son propre espace de travail, il n'y a pas de précaution particulière à adopter.
-- quand plusieurs tâches partagent une même donnée et qu'au moins l'une d'entre-elles la modifie, il y a risque de race condition. Les tâches sont alors en **concurrence** (compétition) pour se partager une même ressource qui devient un goulot d'étranglement. Une synchronisation (régulation) des accès devient nécessaire.
+- La concurrence est l'accès simultané par plusieurs tâches à une même ressource. Cela peut se faire sans parallélisme (exemple: 
+- 
+- 
+-  quand plusieurs tâches partagent une même donnée et qu'au moins l'une d'entre-elles la modifie, il y a risque de race condition. Les tâches sont alors en **concurrence** (compétition) pour se partager une même ressource qui devient un goulot d'étranglement. Une synchronisation (régulation) des accès devient nécessaire.
 
 En plus de compliquer le code, l'utilisation de primitives de synchronisation ralentit son exécution. Une règle (XXX) stipule que si votre code passe x% de son temps à se synchronizer, vous ne pourrez pas avoir plus de (100/X) threads qui s'exécutent en même temps (quelque soit le nombre de CPU):
 - 10% du temps à se synchronizer => 10 threads max à s'exécuter
