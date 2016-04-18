@@ -1,4 +1,4 @@
-# Programmation parallèle est asynchrone en C++
+# Programmation parallèle et asynchrone en C++
 ## Plan
 
 - Threads
@@ -20,17 +20,17 @@ Qu'est-ce qu'un thread?
 
 D'un point de vue technique, un *processus léger* est un ensemble de ressources système connues et gérées par l'OS:
 - des zones mémoires réservées (pile, TLS, ...)
-- un fil d'exécution supplémentaire dans l'odonanceur
+- un fil d'exécution supplémentaire dans l'ordonnanceur
 
 Mais d'un point de vue plus abstrait, quel est le concept implémenté?
 
 ---
 
-Les threads sont une abstraction générale de la mémoire et du CPU sous forme de machine à état.
+Un thread est une machine à états généraliste dont la particularité est d'être gérée par le système d'exploitation. Quand l'exécution d'un thread est bloquée (E/S, page fault...) ou interrompue par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*). C'est donc l'OS qui gère de façon transparente les diverses transitions d'états (en cours d'exécution, en attente, bloqué...).
+
 
 (2:30 https://www.youtube.com/watch?v=wxXIbaJBZlE)
 
-Quand un thread est interrompu par l'odonanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*). C'est une opération relativement coûteuse.
 
 Un thread c'est aussi une pile d'exécution qui occupe un espace mémoire non négligeable. Combinée au coût des changements de contexte, cette abstraction à usage général montre vite ses limites quand on cherche à exécuter des centaines voire des milliers de tâches en parallèle.
 
@@ -148,13 +148,20 @@ Exemple de bibliothèques:
 ---
 ## Boost Thread Group
 
-Boost ne fournit pas de thread pool à proprement parler. Boost.ThreadGroup est une classe très simple qui facilite la gestion d'un groupe de threads, mais ne fournit aucun service pour leur assigner des tâches à exécuter.
+Boost ne fournit pas de thread pool à proprement parler.
+
+Boost.ThreadGroup est une classe très simple qui facilite la gestion d'un groupe de threads, mais ne permet pas de leur assigner une liste de tâches à exécuter.
 
 ```cpp
-thread_group group;
+boost::thread_group threads;
 
+for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    threads.create_thread([]{
+        // do something
+    });
+}
 
-```
+threads.join_all();```
 
 En tant que tel, cette classe n'est donc pas très utile. Mais elle se combien bien avec Boost.Asio par exemple (qui au contraire ne s'occupe que de l'ordonancement de tâches à exécuter).
 
@@ -170,25 +177,25 @@ Les deux fonctions de base de `service_io` sont:
 Il suffit de créer plusieurs threads en leur donnant à chacun la fonction `service_io::run()` à exécuter pour obtenir un traitement en parallèle des tâches dans la liste.
 
 ```cpp
-service_io service;
+asio::io_service asio_service;
 
 // créer des tâches à exécuter
 for (int i = 0; i < 100; ++i) {
-	service.post([]{
+	asio_service.post([]{
 		// faire quelque chose
-		sleep(100);
 	});
 }
 
-thread_group group;
+boost::thread_group threads;
 // créer autant de threads que l'on a de CPU
-for (int i = 0; i < hardware(); ++i) {
-    group.add(std::bind(&service_io::run, service));
+for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    threads.create_thread([]{
+        asio_service.run();
+    });
 }
 
 // attendre la fin du traitement
-group.join_all();
-```
+threads.join_all();```
 ---
 ## Boost.Asio
 
@@ -199,38 +206,36 @@ Pour éviter cela, il suffit de créer une instance de `asio::work`. Cette class
 Le code devient:
 
 ```cpp
-service_io service;
-auto asio_work = make_unique<work>();
+asio::io_service asio_service;
+auto asio_work = std::make_unique_ptr<asio::io_service::work>();
 
-thread_group group;
+boost::thread_group threads;
 // créer autant de threads que l'on a de CPU
-for (int i = 0; i < hardware(); ++i) {
-    group.add(std::bind(&service_io::run, service));
+for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    threads.add(std::bind(&asio::service_io::run, asio_service));
 }
 
-// A partir d'ici, les threads sont en attente d'un tâche
-// à exécuter. Ce sera le cas tant que l'objet work existera.
-```
+// A partir d'ici, les threads sont en attente d'un tâche```
 
 ```cpp
 // 1er lot de tâches à exécuter
-for (int i : generate(0, 100)) {
-	service.post(bind(&sleep, 100));
+for (size_t i : irange(0, 100)) {
+    service.post([]{
+        std::this_thread::sleep_for(100ms);
+    });
 }
 
 // participer au traitement
 service.poll();
 
 // 2eme lot de tâches à exécuter
-for (int i : generate(0, 100)) {
-	service.post(bind(&sleep, 100));
+for (size_t i : irange(0, 100)) {
+	service.post(std::bind(&std::this_thread::sleep_for, 100ms));
 }
 
 // attendre la fin du traitement
-work_asio.reset();
-group.join_all();
-```
-
+asio_work.reset();
+threads.join_all();```
 
 ---
 ## Parallélisation de boucles
