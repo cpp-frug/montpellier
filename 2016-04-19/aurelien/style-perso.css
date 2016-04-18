@@ -7,3 +7,9 @@
 .remark-code, .remark-inline-code {
   font-family: monospace;
 }
+strong {
+  color: #0086B3;
+}
+a {
+  color: rgb(249, 38, 114);
+}
