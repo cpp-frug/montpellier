@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Montpellier C++</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style-perso.css">
+  </head>
+  <body>
+    <textarea id="source">
+template: inverse
+
+## Parallelisme
+---
+## Parallélisation d'un traitement (map/reduce)
+
+std::vector<int> numbers;
+
+// calculer la racine carrée de chaque élément
+OpenMP
+std::parallel_for
+
+version maison:
+  - la race condition est sur l'iterateur, pas le vecteur
+```cpp
+std::atomic<int> pos{0};
+
+auto process = [&pos]{
+	for (;;) {
+		const size_t i = pos++;
+		if (i &lt; numbers.size()) {
+			numbers[i] = sqrt(numbers[i]);
+		}
+		else {
+			break;
+		}
+	}
+};
+QtConcurrent::run(process);
+
+thread_group pool;
+for (int i = 0; i &lt; thread::hardware_concurrency(); ++i)) {
+	pool.create(process);
+}
+pool.join_all();
+```
+
+QtConcurrent::Map
+---
+template: inverse
+
+## Concurrence
+---
+## Producteur - Consommateur
+
+Boost.LockFree
+---
+## Async
+Principe: exécution asynchrone (concurrente) des entrées sorties.
+Bien qu'il y ait concurrence, il n'y a pas nécessairement parallélisme
+  - Par exemple, lire sur plusieurs sockets depuis le même thread
+L'intérêt est de maximiser la capacité de travail d'un même thread.
+  - Pas besoin de synchronisation
+  - Pas de changement de contexte entre threads
+  - Conçu pour permettre l'exécution concurrente de dizaines de milliers d'opérations
+
+Pour que les opérations de lecture/écriture soient asynchrones, elles doivent être non bloquantes.
+  - Exemple typique: lecture/écriture sur les sockets (poll)
+
+Nécessite un support de la part du système d'exploitation
+  - Windows: IOPC, Completion Routine, APC: lecture/écriture asynchrone possible sur les fichiers
+---
+## Exemple: envoie de (gros) fichier sur un serveur
+
+```cpp
+// envoie un fichier à un client sur le réseau
+void sendFile(filesystem::path fileName, Socket &amp; socket) {
+	// ouvrir le fichier
+	File file(fileName);
+	
+	// lire par blocks de 4Ko et envoyer sur le réseau
+	uint8_t buffer[4096];
+	while (const auto size = file.Read(buffer, sizeof(buffer))) {
+		socket.Write(buffer, size);
+	}
+}```
+
+Avantages de ce code synchrone:
+- simple à comprendre
+
+Inconvénient:
+- pendant que l'on envoie un fichier on ne peut rien faire d'autre
+---
+## Utilisation de threads
+
+Une façon simple de régler le problème est de faire exécuter cette fonction dans un thread séparé.
+
+C'est une approche qui fonctionne bien quand on a un long traitement à effectuer en tâche de fond.
+
+Mais l'utilisation de threads devient problématique dès qu'on dépasse le nombre de CPU disponibles:
+  - un thread est une ressource système coûteuse (consommation mémoire de la pile dédiée, temps CPU lors des changements de contexte)
+
+Dans le cas d'un serveur où des milliers de clients peuvent se connecter pour télécharger des fichiers, cette solution n'est pas adaptée.
+---
+La solution la plus performante est d'avoir un seul thread qui gère toutes les entrées-sorties sur la carte réseau.
+
+Chaque opération doit être courte et rendre rapidement la main pour permettre à une autre opération de s'exécuter.
+
+struct Data {
+    File file;
+	uint8_t buffer[4096];
+	Socket socket;
+};
+
+// envoie un fichier à un client sur le réseau
+void sendFileAsync(filesystem::path fileName, Socket &amp; socket) {
+    auto data = make_unique<Data>();	
+	[data=move(data)]{
+		const auto size = data->file.Read(data->buffer, sizeof(data->buffer));
+		if (size > 0) {
+			return [data=move(data)]{
+				socket.Write(data->buffer, size);
+			};
+		}
+	}
+
+	void sendNext(unique_ptr<Data> data) {
+		service.post([data=move(data)]{
+			const auto size = data->file.Read(data->buffer, sizeof(data->buffer));
+			if (size > 0) {
+				service.post([data=move(data)]{
+					socket.Write(data->buffer, size);
+					sendNext(std::move(data));
+				});
+			}
+		});
+	}
+	
+	sendNext(data){
+		// risque un stack overflow!
+		file.ReadAsync(data->buffer, sizeof(data->buffer), [](data, size){
+			data->socket.WriteAsync(data->buffer, size, []{
+				sendNext(std::move(data));
+			});
+		});
+	}
+	
+	// pas de stack overflow - la gestion des erreurs est à revoir
+	sendNext(data){
+		file.ReadAsync(data->buffer, sizeof(data->buffer)).then([](data, size){
+			socket.WriteAsync(data->buffer, size).then([]{ 
+				sendNext();
+			});
+		});
+	}
+
+	void sendNext(unique_ptr<Data> data) {
+		service.post([data=move(data)]{
+			io.async_read
+			const auto size = data->file.Read(data->buffer, sizeof(data->buffer));
+			if (size > 0) {
+				service.post([data=move(data)]{
+					socket.Write(data->buffer, size);
+					sendNext(std::move(data));
+				});
+			}
+		});
+	}```
+---
+## Parallélisme et Concurrence
+
+Le comité C++ dispose d'un groupe d'étude dédié à ces questions: le WG XX Parallelism and Concurrency.
+
+Plusieurs propositions sont à l'étude:
+- Concurrency TS: améliorer std::future pour le rendre composable (std::future::thend). S'inspire de boost::future.
+- Coroutines
+
+Il y a peu de chances de voir cela intégré à C++17 (qui sera finalement une norme mineure) mais le compilateurs supportent déjà certaines de ces fonctionnalités expérimentales.
+---
+## Comment ça marche?
+
+Le principe est de fournir des callbacks (lambdas) qui sont exécutées une fois l'opération demandée terminée.
+
+Sous Windows, on parle de Completion Routine.
+
+Les callbacks peuvent être chaînées entre-elles à la javascript.
+Exemple avec la PPL:
+```cpp
+async([]{
+    read();
+}).then([]{
+    write()
+});
+```
+On connecte ainsi des callback pour former un graphe.
+
+Les noeuds du graphe représentent les valeurs finales calculées qui sont manipulées via des promesses futures.
+
+Avec certaines bibliothèques, le fait d'abandonner un future propage l'annulation en amont dans le graphe (cancellable).
+
+La bibliothèque standard C++ n'offre aucune facilité de cette sorte.
+---
+## Coroutines (resumable function)
+Le commité C++ focalise son travail sur l'ajout de coroutines à C++.
+
+Une routine classique (fonction, procédure) permet d'être appelée ainsi que de rendre la main à l'appelant.
+Une coroutine est une "routine généralisée" qui supporte comme opération supplémentaire d'être suspendue et relancée (là où elle avait été suspendue).
+
+On trouve ce mécanisme dans divers langages : C# (await/yield), Python, Ruby...
+
+Une coroutine est une fonction dont l'exécution peut être suspendue puis reprise.
+
+L'idée d'une coroutine est d'offrir une vue synchrone de plusieurs blocs de code conçus pour être exécutés de façon asynchrone.
+
+Nos callback précédentes sont regroupées au sein d'une même fonction ce qui rend le code beaucoup plus lisible.
+
+```cpp
+// La coroutine offre l'illusion d'un exécution synchrone
+future<void> f(){
+    co_await read();
+    co_return write()
+}
+
+auto r = co_await f();
+```
+
+Au final, c'est comme si on avait une routine synchrone classique. Sauf qu'une coroutine accepte d'être interrompue en plein milieu de son exécution.
+
+Elle reprendra là où elle s'était arrêtée à son prochain appel (au lieu de commencer au début de la fonction).
+
+Contrairement à la composition de future, les coroutines demandent un support spécifique au niveau du langage et donc une modification de ce dernier pour supporter de nouveaux mot-clés: co_await, co_yield, co_return.
+
+Les coroutines sont une proposition en cours d'étude par le comité.
+
+Elles sont supportées par Visual C++ 2015. Quid de Clang?
+
+Elles sont de type *stackless*, c.à.d que l'OS n'alloue pas de pile pour la coroutine: c'est au compilateur d'allouer la mémoire nécessaire sur le tas pour sauvegarder le contexte d'appel et le restaurer (activation frame). Cela demande plus de travail mais permet de créer des millions de coroutines.
+---
+.left-column[
+  ## Boost. LockFree
+  ## Concurrence
+  ### Thread
+  ### Concurrence
+  ### Parallélisme
+  ### Race condition
+]
+.right-column[
+  Modèle traditionnel du producteur-consomateur.
+]
+---
+.left-column[
+  ## Boost.Asio
+]
+.right-column[
+  A la base, il s'agit d'une bibliothèque de programmation réseau
+  En cours de normalisation (sous forme de TS)
+]
+---
+.left-column[
+  ## Threads
+]
+.right-column[
+Citation:
+> Quand un programmeur a un problème de performance, il pense aux threads. Maintenant, il proba deux lèmes.
+
+Un thread est une machine à état. C'est une abstraction générale qui montre vite ses limites.
+]
+---
+.left-column[
+  ## Parallélisme vs Concurrence
+]
+.right-column[
+Ce sont deux concepts très différents:
+- le parallélisme consiste à exécuter une même tâche sur des jeux de données différents. Il n'y a donc pas besoin
+
+Race condition:
+- quand au moins un thread écrit une données et qu'au moins un autre thread y accède.
+
+const et mutable en C++11
+]
+---
+Threads, async & future, Boost.Asio, coroutines
+
+```cpp
+class X {
+public:
+    int n; // OK
+};
+```
+    </textarea>
+    <script src="remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>

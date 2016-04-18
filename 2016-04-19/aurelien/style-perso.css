@@ -1,0 +1,9 @@
+.hljs-keyword {
+  color: #217DF3;
+}
+.hljs-default .hljs-comment {
+  color: #46A04A;
+}
+.remark-code, .remark-inline-code {
+  font-family: monospace;
+}
