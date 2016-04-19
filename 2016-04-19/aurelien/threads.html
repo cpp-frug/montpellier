@@ -283,20 +283,25 @@ Principe
 	assert(queue.empty());```
 ]
 ---
+.left-column[
 ## Thread pools
+]
+.right-column[
 
 Dans la mesure où un thread est une ressource coûteuse à créer, une première façon d'abstraire leur utilisation est d'architecturer son code pour qu'il manipule des tâches dont l'exécution est déléguée à un objet spécifique (un *task runner*).
 
 Cet objet va en interne créer un groupe de threads constament en attente d'exécuter une nouvelle tâche (des *worker threads*). Le *task runner* s'occupe donc de répartir le travail en fonction de la capacité de la machine (nombre de CPU). L'intérêt majeur est:
 - rentabiliser le coût de création d'un thread en le recyclant une fois sont travail terminé
 - rendre le code plus simple à lire et écrire via le concept de tâche 
-
+]
 ---
-## Boost Thread Group
+.left-column[
+## Boost.Thread
+###thread_group
+]
+.right-column[
 
-Boost ne fournit pas de thread pool à proprement parler.
-
-Boost.ThreadGroup est une classe très simple qui facilite la gestion d'un groupe de threads, mais ne permet pas de leur assigner une liste de tâches à exécuter.
+Boost ne fournit pas de thread pool, mais une simple classe utilitaire ```thread_group``` qui facilite la création et la gestion d'un groupe de threads.
 
 ```cpp
 boost::thread_group threads;
@@ -309,10 +314,35 @@ for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
 
 threads.join_all();```
 
-En tant que tel, cette classe n'est donc pas très utile. Mais elle se combien bien avec Boost.Asio par exemple (qui au contraire ne s'occupe que de l'ordonancement de tâches à exécuter).
+Comme elle ne permet pas d'assigner une liste de tâches aux threads, cette classe n'est pas très utile par elle-même.
 
-Astuce: donner un identifiant (chaîne de caractères) aux tâches à exécuter qui sert à nommer temporairement le worker thread qui exécute notre tâche. Cela facilite le débogage sur des machines avec beaucoup de processeurs.
+Mais elle se combien bien avec Boost.Asio qui au contraire ne s'occupe que de l'ordonnancement de tâches.
+]
+---
+.left-column[
+## QtConcurrent
+]
+.right-column[
 
+De son côté **Qt** fournit un ensemble assez riche de services au sein de son module Concurrent.
+
+Ce module fournit une classe ```QThreadPool``` qui sert 
+
+```cpp
+boost::thread_group threads;
+
+for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    threads.create_thread([]{
+        // do something
+    });
+}
+
+threads.join_all();```
+
+Comme elle ne permet pas d'assigner une liste de tâches aux threads, cette classe n'est pas très utile par elle-même.
+
+Mais elle se combien bien avec Boost.Asio qui au contraire ne s'occupe que de l'ordonnancement de tâches.
+]
 ---
 ## Boost Asio
 
