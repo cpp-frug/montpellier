@@ -13,3 +13,6 @@ strong {
 a {
   color: rgb(249, 38, 114);
 }
+.right-column p {
+  text-align: justify;
+}
