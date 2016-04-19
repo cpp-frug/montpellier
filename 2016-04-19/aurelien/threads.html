@@ -54,7 +54,7 @@ Note: un thread n'est pas qu'un fil d'exécution, c'est aussi une pile et donc u
 ## Qu'est-ce qu'un thread?
 ]
 .right-column[
-De manière plus génértale, un thread est un **automate fini** dont les changements d'états sont gérés de façon transparente par le système d'exploitation:
+De manière plus générale, un thread est un **automate fini** dont les changements d'états sont gérés de façon transparente par le système d'exploitation:
 - en cours exécution
 - en attente d'exécution
 - bloqué (E/S, page fault...)
@@ -72,10 +72,12 @@ C++11 a introduit le support des threads au niveau du langage.
 - Un thread est défini comme *un flot unique de contrôle dans un programme* ($1.10)
 
 Supporter les threads ne s'est pas résumé à ajouter la classe `std::thread`, mais a nécessité de revisiter le modèle mémoire du langage.
-
+]
+--
+.right-column[
 Par exemple, l'initialisation (et non pas l'utilisation) des objets statiques est thread-safe en C++11 (garantie nécessaire à la bonne initialisation des mutex).
 
-Il y a aussi tout un tas de considérations très bas niveau qui entrent en jeu...
+Il y a d'autres considérations bas niveau qui entrent en jeu...
 ]
 
 ---
@@ -103,7 +105,7 @@ void thread2() {
 .right-column[
 Le jeu d'instruction des processeurs peut obliger le compilateur à manipuler la mémoire selon un granularité supérieure à celle d'un ```short``` (2 bytes).
 
-Conséquence : ```n1``` et ```n2``` sont vus comme les champs haut et bas d'un même mot de 4 bytes => data race!
+Conséquence : ```n1``` et ```n2``` sont manipulés comme les champs haut et bas d'un même mot de 4 bytes => data race!
 ]
 ---
 .left-column[
@@ -112,14 +114,12 @@ Conséquence : ```n1``` et ```n2``` sont vus comme les champs haut et bas d'un m
 .right-column[
 La **concurrence** est l'accès simultané (compétitif) à une même ressource partagée. Elle introduit le risque de collision entre tâches et donc le besoin de les synchroniser.
 - Si au moins une tâche modifie une ressource pendant qu'au moins une autre la lit, une corruption (*data race*) est possible.
-
+]
+--
+.right-column[
 Le **parallélisme** est l'exécution simultanée de plusieurs tâches qui peuvent être totalement indépendantes les unes des autres.
 - Il n'implique pas nécessairement la concurrence (c'est même souhaitable de l'éviter).
-
-L'utilisation directe des threads dans le code tend à coupler et mélanger ces deux notions. Mais elles gagnent à être distinguées.
-- [Plain Threads are the GOTO of todays computing](https://www.youtube.com/watch?v=4OCUEgSNIAY)
 ]
-
 ---
 .left-column[
 ## Synchroniser est coûteux
@@ -134,49 +134,65 @@ La [loi d'Amdahl](https://fr.wikipedia.org/wiki/Loi_d%27Amdahl) montre que le ga
 - 5% en SC => x6 avec 8 coeurs
 - 10% en SC => x3 avec 4 coeurs (x8 avec 32!)
 - 25% en SC => x3 avec 8 coeurs
-- 50% en SC => x1.25 avec un 2eme coeur
-
-C'est pourquoi le temps passé dans les sections critiques doit être le plus court possible.
-- L'idéal est de ne pas avoir besoin de se synchroniser!
 ]
-
+--
+.right-column[
+C'est pourquoi le temps passé dans les sections critiques doit être le plus court possible!
+]
 ---
 .left-column[
-## Travaux en cours
+## Au delà des threads
+]
+.right-column[
+L'utilisation directe des threads dans le code tend à coupler et mélanger la concurrence au parallélisme.
+
+Mais ces deux notions gagnent à être distinguées car **la difficulté du multi-threading se trouve dans la concurrence**, pas le parallélisme!
+- [Plain Threads are the GOTO of todays computing](https://www.youtube.com/watch?v=4OCUEgSNIAY)
+]
+--
+.right-column[
+Idéalement chaque tâche devrait travailler sans effet de bords sur une espace mémoire qui lui est propre (style fonctionnel).
+- Cela peut justifier une recopie des données avec fusion ultérieure des résultats (Map/Reduce).
+]
+---
+.left-column[
+## Au delà des threads
+### Travaux en cours
 ]
 .right-column[
 C++11 n'a fait que poser les bases nécessaires à construire des primitives plus évoluées. Le comité travaille activement à introduire de nouvelles abstractions. 
 
-Plus concrètement, la difficulté du multi-threading se trouve dans la concurrence, pas dans le parallélisme. L'idée des nombreux travaux en cours est de tendre vers un style explicitement parallèle (manipulation de tâches) plutôt qu'un style explicitement concurrentiel (manipulation de mutex).
-
-Idéalement chaque tâche devrait travailler sans effet de bords sur une espace mémoire qui lui est propre (style fonctionnel). Le code est alors beaucoup plus simple à paralléliser et à maintenir.
-
+L'idée des nombreux travaux en cours est de **tendre vers un style explicitement parallèle** (manipulation de tâches) plutôt qu'un style explicitement concurrentiel (manipulation de mutex).
+]
+--
+.right-column[
 Quelques pistes en cours d'exploration:
+- Algorithmes parallèles dans la STL (C++17)
 - Standardisation de Boost.ASIO
-- Algorithmes parallèles dans la STL
-- Future composables
-- Co-routines
+- Composition d'objets futurs
+- Coroutines
 ]
 
 ---
 class: center
 # &nbsp;
 # Programmation lock-free
-## std::atomic
-## Boost.LockFree
+## std::atomic, Boost.LockFree
 
 ---
 .left-column[
 ## Mutex vs Lock-free
 ]
 .right-column[
-En général, on recourt à un verrou logiciel (mutex) pour éviter la corruption des données partagées.
+En général, on recourt à un verrou logiciel (mutex) pour éviter la corruption des données partagées. En conséquence, le fil d'exécution peut se vior bloqué, en attente d'obtenir le verrou.
 
-Mais certaines modification simples (effectuable en une seule instruction machine) peut-être sécurisées via des primitives spéciales du processeur (de type *compare and swap*).
+Mais certaines modification simples (effectuable en une seule instruction machine) peuvent être sécurisées sans bloquer le thread appelant via des primitives spéciales du processeur (de type *compare and swap*).
 - Un support hardware est nécessaire.
-
+]
+--
+.right-column[
 En réalité il y a toujours un verrouillage d'effectué mais au niveau hardware (cache du processeur)
-- c'est beaucoup plus rapide qu'un aller-retour dans le noyau de l'OS mais ça reste plus lent qu'une instruction machine classique
+- C'est beaucoup plus rapide qu'un aller-retour dans le noyau de l'OS mais ça reste plus lent qu'une instruction machine classique
 ]
 ---
 .left-column[
@@ -184,7 +200,7 @@ En réalité il y a toujours un verrouillage d'effectué mais au niveau hardware
 ]
 .right-column[
 
-La programmation *lock-free* est très tentante mais elle se révèle encore plus difficile et subtile que d'utiliser correctement les mutex.
+La programmation *lock-free* est très tentante mais elle se révèle encore plus difficile et subtile que l'utiliser correcte des mutex.
 
 ```cpp
 std::atomic<int> count{0};
@@ -203,33 +219,68 @@ void releaseMyClass() {
         delete ptr;
     }
 }```
+Où est le problème?
+]
+---
+.left-column[
+## Conteneurs lock-free
+]
+.right-column[
+
+Certaines structures de données peuvent être implémentées de façon à ne pas bloquer l'appelant même dans un contexte multi-thread (```stack```, ```queue```, ```set```, ```map```).
+- D'autres en revanche semblent impossible à implémenter sans verrou global (```std::list```).
+
+**Boost.LockFree** fournit deux types de listes (```stack```, ```queue```) qui fonctionnent sans verrou. Elles sont bien adaptées à un usage producteur / consommateur.
+
+Un autre conteneur FIFO de type buffer circulaire (```spsc_queue```) est aussi fournit. C'est une version **wait free** qui n'est utilisable que s'il y a un seul producteur et un seul consommateur (*single-producer single-consumer queue*).
+- Son intérêt est de se passer des primitives atomiques et de ne dépendre que des barrières mémoire.
 ]
 ---
 .left-column[
 ## Boost. LockFree
+### Principe
 ]
 .right-column[
-
-Certaines structures de données peuvent être implémentées sans mutex via des primitives atomiques (```stack```, ```queue```, ```set```, ```map```).
-
-D'autres en revanche semblent impossible à implémenter sans verrou global (```std::list```).
-
-**Boost.LockFree** fournit deux types de listes simplement chaînées (```stack```, ```queue```) capables de fonctionner sans verrou. Ces conteneurs sont bien adaptés au cas du producteur/consommateur.
-
-Elle fournit aussi une version encore plus optimisée de liste FIFO qui se passe des primitives atomiques (et ne dépend que des barrières mémoire). Cette version ne fonctionne que si elle est utilisée avec un seul producteur et un seul consommateur (single-reader single-writer)
-]
----
-.left-column[
-## Boost. LockFree
-### Usage
-]
-.right-column[
-On spécifie lors de la declaration si l'on souhaite un redimensionnement dynamique ou non
-- auquel cas le conteneur peut être bloquant si un redimensionnement est nécessaire
+La possibilité de redimensionner dynamiquement ou non un conteneur est spécifiée au niveau du type (paramètre ```boost::lockfree::fixed_sized```).
 
 ```cpp
+    template<typename T>
+    using lockfree_queue = boost::lockfree::stack<T,
+        boost::lockfree::fixed_sized<true>>;
 
-```
+    // taille fixe de 10
+    lockfree_queue<int> queue{ 10 };```
+
+Si le conteneur est autorisé à se redimensionner dynamiquement, la garantie d'être non bloquant lors de l'insertion d'un élément avec ```push()``` n'est plus garantie.
+
+Sinon, la demande d'insersion est ignorée (```push()``` renvoie ```false```).
+- La variante ```bounded_push()``` fonctionne toujours de cette façon
+]
+---
+.left-column[
+## Boost. LockFree
+Principe
+### Exemple
+]
+.right-column[
+```cpp
+	boost::lockfree::stack<
+	    int,
+		boost::lockfree::capacity<10>> queue;
+	
+	// remplir jusqu'à saturation
+	int n = 0;
+	while (queue.push(n))
+		++n;
+	
+	std::cout << queue.top() << "\n"; // "0"
+	queue.pop();
+	
+	queue.consume_all([](int n) {
+		std::cout << n << "\n";
+	});
+	
+	assert(queue.empty());```
 ]
 ---
 ## Thread pools
@@ -239,12 +290,6 @@ Dans la mesure où un thread est une ressource coûteuse à créer, une premièr
 Cet objet va en interne créer un groupe de threads constament en attente d'exécuter une nouvelle tâche (des *worker threads*). Le *task runner* s'occupe donc de répartir le travail en fonction de la capacité de la machine (nombre de CPU). L'intérêt majeur est:
 - rentabiliser le coût de création d'un thread en le recyclant une fois sont travail terminé
 - rendre le code plus simple à lire et écrire via le concept de tâche 
-
-Exemple de bibliothèques:
-- Microsoft PPL
-- QtConcurrent
-- std::async
-- Win32 Thread Pool API
 
 ---
 ## Boost Thread Group

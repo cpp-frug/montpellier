@@ -26,17 +26,52 @@ class: middle
 ## Conteneurs et algorithmes de la bibliothèque standard
 **Loïc Hamot**
 
-## Tour d'horizon du multi-threading en C++
+## Tour d'horizon du multi-threading
 **Aurélien Regat-Barrel**
-
-.footnote[Les supports de présentation sont disponibles sur GitHub:
-
-[cpp-frug.github.io/montpellier](http://cpp-frug.github.io/montpellier/)]]
-
+]
 ---
 class: center, middle, inverse
 
 # Quelques news!
+Sur les évolutions en cours du langage
+---
+class: middle
+.left-column[
+  ## C++17
+]
+.right-column[
+### Le dernier meeting du comité C++ a eu lieu en mars aux US (Jacksonville)
+C++17 sera vraissemblablement une version mineure:
+- pas de Modules
+- pas de Concepts
+- pas de Range (dépendance sur les concepts)
+- pas de Coroutines
+- pas de *uniform call syntax*
+]
+--
+.right-column[
+Rendez-vous en 2020 ou peut-être même 2019 pour ces points là.
+]
+---
+class: middle
+.left-column[
+  ## C++17
+]
+.right-column[
+### Ce qui sera inclus dans C++17
+STL parallèle / vectorisée
+
+Library Fundamentals TS (```any```, ```optional```, ```string_view```, ...)
+
+File System TS
+
+Beaucoup de petits ajouts et améliorations qui vont faire évoluer notre style de programmation:
+- ```if constexpr```
+- lambdas ```constexpr```
+- ```operator.``` (smart references)
+- génération de comparateurs par défaut ( ```==```, ```!=```, ```<```, ```<=```, ```>```, ```>=```)
+- attributs ```[[fallthrough]]```, ```[[nodiscard]]```, ```[[maybe_unused]]```
+]
 ---
 class: center, middle, inverse
 
@@ -66,8 +101,8 @@ class: center, middle, inverse
 ---
 class: center, middle, inverse
 
-# Merci de votre attention
-**Et maintenant, Apéro!**
+# Merci de votre attention!
+**Et maintenant, apéro!**
     </textarea>
     <script src="remark.js" type="text/javascript">
     </script>
