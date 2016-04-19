@@ -27,10 +27,8 @@ Mais d'un point de vue plus abstrait, quel est le concept implémenté?
 
 ---
 
-Un thread est automate fini dont les changements d'états sont gérés de façon transparente par le système d'exploitation (en exécution, en attente, bloqué...).
+Un thread est un automate fini dont les changements d'états sont gérés de façon transparente par le système d'exploitation (en exécution, en attente, bloqué...).
 - Quand un thread est bloqué (E/S, page fault...) ou interrompu par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread en attente d'exécution (*context switch*).
-
-(2:30 https://www.youtube.com/watch?v=wxXIbaJBZlE)
 
 Note: d'un point de vue utilisateur, un thread n'est pas qu'un *fil d'exécution*, c'est aussi une pile qui occupe un espace mémoire non négligeable.
 - c'est une source importante de limitation à leur utilisation massive
