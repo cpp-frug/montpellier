@@ -1,0 +1,18 @@
+.hljs-keyword {
+  color: #217DF3;
+}
+.hljs-default .hljs-comment {
+  color: #46A04A;
+}
+.remark-code, .remark-inline-code {
+  font-family: monospace;
+}
+strong {
+  color: #0086B3;
+}
+a {
+  color: rgb(249, 38, 114);
+}
+.right-column p {
+  text-align: justify;
+}

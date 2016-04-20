@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Montpellier C++</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style-perso.css">
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse
+
+# Tour d'horizon du multi-threading en C++
+[Threads, atomics, lock-free, async, future, Asio]
+
+.right-column[
+.footnote[Par **Aurélien Regat-Barrel**]
+]
+---
+.left-column[
+  ## Plan
+]
+.right-column[
+## Enjeux du multi-threading
+## Programmation lock-free
+## Programmation asynchrone
+## Introduction à Asio
+]
+---
+class: center
+# &nbsp;
+# Quand un programmeur a un problème de performance, il pense aux threads.
+--
+
+# Maintenant, il proba deux lèmes.
+---
+.left-column[
+## Qu'est-ce qu'un thread?
+]
+.right-column[
+D'un point de vue technique, un **processus léger** est un ensemble de ressources gérées par l'OS:
+- des zones mémoires spécifiques (pile, TLS, contexte...)
+- un fil d'exécution enregistré auprès de l'ordonnanceur
+
+Note: un thread n'est pas qu'un fil d'exécution, c'est aussi une pile et donc un espace mémoire dont la taille n'est pas  négligeable.
+]
+--
+.right-column[
+### Mais d'un point de vue plus abstrait, c'est quoi un thread?
+]
+---
+.left-column[
+## Qu'est-ce qu'un thread?
+]
+.right-column[
+De manière plus générale, un thread est un **automate fini** dont les changements d'états sont gérés de façon transparente par le système d'exploitation:
+- en cours exécution
+- en attente d'exécution
+- bloqué (E/S, page fault...)
+- ...
+
+Quand un thread est bloqué ou interrompu par l'ordonnanceur, son état est sauvegardé pour être remplacé par le contexte d'exécution d'un autre thread prêt à s'exécuter (*context switch*).
+]
+---
+.left-column[
+## Les threads en C++11
+]
+.right-column[
+
+C++11 a introduit le support des threads au niveau du langage.
+- Un thread est défini comme *un flot unique de contrôle dans un programme* ($1.10)
+
+Supporter les threads ne s'est pas résumé à ajouter la classe `std::thread`, mais a nécessité de revisiter le modèle mémoire du langage.
+
+Par exemple, l'initialisation (et non pas l'utilisation) des objets statiques est thread-safe en C++11 (garantie nécessaire à la bonne initialisation des mutex).
+
+Mais il y a d'autres considérations bas niveau qui entrent en jeu...
+]
+
+---
+.left-column[
+## Les threads en C++11
+]
+.right-column[
+Par exemple, quel est le problème avec ce code en C++98?
+```cpp
+short n1 = 0;
+short n2 = 0;
+
+void thread1() {
+    while (true) {
+        n1 += 1;
+    }
+}
+
+void thread2() {
+    while (true) {
+        n2 += 1;
+    }
+}```]
+--
+.right-column[
+Le jeu d'instruction des processeurs peut obliger le compilateur à manipuler la mémoire selon un granularité supérieure à celle d'un ```short``` (2 bytes).
+
+Conséquence : ```n1``` et ```n2``` sont manipulés comme les champs haut et bas d'un même mot de 4 bytes => data race!
+]
+---
+.left-column[
+## Concurrence et Parallélisme
+]
+.right-column[
+La **concurrence** est l'accès simultané (compétitif) à une même ressource partagée. Elle introduit le risque de collision entre tâches et donc le besoin de les synchroniser.
+- Si au moins une tâche modifie une ressource pendant qu'au moins une autre la lit, une corruption (*data race*) est possible.
+]
+--
+.right-column[
+Le **parallélisme** est l'exécution simultanée de plusieurs tâches qui peuvent être totalement indépendantes les unes des autres.
+- Il n'implique pas nécessairement la concurrence (c'est même souhaitable de l'éviter).
+]
+---
+.left-column[
+## Synchroniser est coûteux
+]
+.right-column[
+
+Une **section critique** est identifiée par un début (verrouillage) et une fin (libération du verrou).
+
+Elle constitue un goulot d'étranglement par lequel les flux parallèles sont contraints de se "dé-paralléliser".
+
+La [loi d'Amdahl](https://fr.wikipedia.org/wiki/Loi_d%27Amdahl) montre que le gain maximal attendu est inversement proportionnel à la taille du code non parallélisable (sections critiques):
+- 5% en SC => x6 avec 8 coeurs
+- 10% en SC => x3 avec 4 coeurs (x8 avec 32!)
+- 25% en SC => x3 avec 8 coeurs
+
+C'est pourquoi le temps passé dans les sections critiques doit être le plus court possible!
+]
+---
+.left-column[
+## Au delà des threads
+]
+.right-column[
+L'utilisation directe des threads dans le code tend à coupler et mélanger la concurrence au parallélisme.
+
+Mais ces deux notions gagnent à être distinguées car **la difficulté du multi-threading se trouve dans la concurrence**, pas le parallélisme!
+- [Plain Threads are the GOTO of todays computing](https://www.youtube.com/watch?v=4OCUEgSNIAY)
+]
+--
+.right-column[
+Idéalement chaque tâche devrait travailler sans effet de bords sur une espace mémoire qui lui est propre (style fonctionnel).
+- Cela peut justifier une recopie des données avec fusion ultérieure des résultats (Map/Reduce).
+]
+---
+.left-column[
+## Au delà des threads
+### Travaux en cours
+]
+.right-column[
+C++11 n'a fait que poser les bases nécessaires à construire des primitives plus évoluées. Le comité travaille activement à introduire de nouvelles abstractions. 
+
+L'idée des nombreux travaux en cours est de **tendre vers un style explicitement parallèle** (manipulation de tâches) plutôt qu'un style explicitement concurrentiel (manipulation de mutex).
+]
+--
+.right-column[
+Quelques pistes en cours d'exploration:
+- Algorithmes parallèles dans la STL (C++17)
+- Standardisation de Boost.Asio
+- Composition d'objets futurs
+- Coroutines
+]
+
+---
+class: center
+# &nbsp;
+# Programmation lock-free
+## std::atomic, Boost.LockFree
+
+---
+.left-column[
+## Mutex vs Lock-free
+]
+.right-column[
+En général, on recourt à un verrou logiciel (mutex) pour éviter la corruption des données partagées. En conséquence, le fil d'exécution peut se voir bloqué, en attente d'obtenir le verrou.
+
+Mais certaines modification simples (effectuable en une seule instruction machine) peuvent être sécurisées sans bloquer le thread appelant via des primitives spéciales du processeur (de type *compare and swap*).
+- Un support hardware est nécessaire.
+]
+--
+.right-column[
+En réalité il y a toujours un verrouillage d'effectué mais au niveau hardware (cache du processeur)
+- C'est beaucoup plus rapide qu'un aller-retour dans le noyau de l'OS mais ça reste plus lent qu'une instruction machine classique
+]
+---
+.left-column[
+## std::atomic
+]
+.right-column[
+
+La programmation *lock-free* est très tentante mais elle se révèle encore plus difficile et subtile que l'utiliser correcte des mutex.
+
+```cpp
+std::atomic<int> count{0};
+MyClass * ptr = nullptr;
+
+MyClass * useMyClass() {
+    if (count == 0) {
+        ptr = new MyClass;
+    }
+    ++count:
+    return ptr;
+}
+
+void releaseMyClass() {
+    if (--count == 0) {
+        delete ptr;
+    }
+}```
+Où est le problème?
+]
+---
+.left-column[
+## Conteneurs lock-free
+]
+.right-column[
+
+Certaines structures de données peuvent être implémentées de façon à ne pas bloquer l'appelant même dans un contexte multi-thread (```stack```, ```queue```, ```set```, ```map```).
+- D'autres en revanche semblent impossible à implémenter sans verrou global (```std::list```).
+
+**Boost.LockFree** (bibliothèque *header only*) fournit deux types de listes (```stack```, ```queue```) qui fonctionnent sans verrou. Elles sont bien adaptées à un usage producteur / consommateur.
+]
+--
+.right-column[
+Un autre conteneur de type buffer circulaire (```spsc_queue```) est aussi fournit. C'est une version **wait free** qui n'est utilisable que s'il y a un seul thread producteur et un seul thread consommateur (*single-producer single-consumer queue*).
+- ```spsc_queue``` n'utilise pas de primitives atomiques mais des barrières mémoire (```std::memory_order```).
+]
+---
+.left-column[
+## Boost. LockFree
+### Principe
+]
+.right-column[
+La possibilité de redimensionner dynamiquement ou non un conteneur dépend d'un paramètre au niveau de son type (```lockfree::fixed_sized``` ou ```lockfree::capacity```).
+
+```cpp
+#include <boost/lockfree/queue.hpp>
+
+template<typename T>
+using lockfree_queue = boost::lockfree::queue<T,
+    boost::lockfree::fixed_sized<true>>;
+
+// taille fixe de 10
+lockfree_queue<int> queue{ 10 };```
+
+Si le conteneur est autorisé à se redimensionner dynamiquement, l'insertion d'un élément avec ```push()``` n'est plus garantie comme non bloquante.
+
+Si le conteneur est plein et que sa taille est fixe, la demande d'insertion est ignorée (```push()``` renvoie ```false```).
+- La variante ```bounded_push()``` fonctionne toujours de cette façon.
+]
+---
+.left-column[
+## Boost. LockFree
+### Principe
+### Exemple
+]
+.right-column[
+```cpp
+boost::lockfree::queue<
+    int,
+    boost::lockfree::capacity<10>> queue;
+
+// remplir jusqu'à saturation
+int n = 0;
+while (queue.push(n))
+    ++n;
+
+if (queue.pop(n))
+    std::cout << n << "\n";
+
+queue.consume_all([](int n) {
+    std::cout << n << "\n";
+});
+
+assert(queue.empty());```
+]
+---
+class: center
+# &nbsp;
+# Programmation asynchrone
+[Tu ne le sais pas encore, mais tu es déjà mort]
+---
+.left-column[
+## Thread pools
+]
+.right-column[
+Afin de découpler son code de l'utilisation directe des threads et aussi d'en optimiser l'utilisation, on peut recourir à un pool de threads.
+
+L'idée est de créer un groupe de threads constamment en attente de travail (des **worker threads**), et de confier la répartition des tâches à traiter à un objet spécialisé (un **task runner** ou **executors**).
+
+Certains frameworks imposent aux tâches d'hériter d'une interface de type ```IRunnable```. En C++ on préfère encapsuler l'unité de travail dans un objet fonction ou une lambda.
+]
+---
+.left-column[
+## Boost.Thread
+###thread_group
+]
+.right-column[
+
+Boost ne semble pas avoir de thread pool<sup>1</sup> à part entière, mais fournit la classe utilitaire ```thread_group``` qui facilite la création et la gestion d'un groupe de threads.
+
+```cpp
+#include <boost/thread/thread.hpp>
+cppboost::thread_group threads;
+// lancer les threads
+size_t nbThreads = thread::hardware_concurrency();
+for (size_t i = 0; i < nbThreads; ++i) {
+    threads.create_thread([]{
+        // faire quelque chose
+    });
+}
+// attendre leur fin d'exécution
+threads.join_all();```
+
+Bien qu'elle ne permette pas d'assigner une liste de tâches aux threads, elle se combine bien avec Boost.Asio qui s'occupe justement de l'ordonnancement de tâches.
+]
+.footnote[1. Il y a bien une classe ```executors::basic_thread_pool``` mais elle n'est pas documentée!]
+---
+.left-column[
+## Async
+]
+.right-column[
+
+De son côté Qt fournit un ensemble assez riche de services au sein de son module **QtConcurrent**.
+
+Ce module fournit une classe ```QThreadPool``` qui sert de base à des abstractions plus évoluées.
+
+Par exemple, ```QtConcurrent::run()``` affecte une tâche donnée dans un thread appartenant au pool par défaut.
+
+C'est le même principe d'utilisation que ```std::async()```:
+
+```cpp
+std::vector<int> v{ 1'000'000 };
+// en attendant std::parallel::min_element en C++17
+auto result = std::async([&v]{
+    return *std::min_element(v.begin(), v.end());
+});```
+
+Question: quel est le type de l'objet ```result```?  
+]
+---
+.left-column[
+## Async
+### Future
+]
+.right-column[
+Lancer aussi facilement des tâches en parallèle est très pratique, mais comment récupérer leurs résultats?
+
+C'est pour répondre à ce besoin qu'a été introduit le concept de résultat futur.
+```cpp
+#include <future>
+
+std::future<int> result = std::async([]{
+    return 10;
+});
+
+std::cout << result.get();```
+
+```std::future<>``` (ou ```QFuture<>```) sont des objets proxy qui permettent de manipuler un résultat que l'on n'a pas encore mais que l'on aura (ou pas!) plus tard.
+]
+---
+.left-column[
+## Async
+### Future
+### Résultats
+]
+.right-column[
+
+Au moment de demander sa valeur à un ```std::future```:
+- soit elle est disponible et alors elle est retournée immédiatement
+- soit elle ne l'est pas encore et on reste bloqué en attente de sa disponibilité
+
+A noter que pour ```std::async```, l'exécution de la tâche n'est pas forcément faite en parallèle. En effet : programmation asynchrone n'implique pas forcément programmation parallèle!
+]
+---
+.left-column[
+## Async
+### Future
+### Résultats
+### Exceptions
+]
+.right-column[
+Si pendant l'exécution de la tâche une exception a eu lieu, celle-ci sera interceptée, mise en attente, et relancée via l'objet future au moment de la récupération du résultat.
+```cpp
+auto r = std::async([] {
+    throw "oups!";
+});
+
+try {
+    r.get();
+}
+catch (const char * e) {
+    std::cout << e << "\n";
+}```
+]
+---
+.left-column[
+## Async
+### Future
+### Résultats
+### Exceptions
+### Composition
+]
+.right-column[
+Là où cela devient très intéressant, c'est quand il est possible de composer de nouvelles tâches asynchrones à partir des résultats de tâches non encore exécutées...
+
+C'est l'idée derrière ```future::then()```:
+
+```cpp
+// pseudo-code
+future<int> f = async(task1)
+  .then(task2)
+  .then(task3)
+  .then(task4);
+```
+]
+--
+.right-column[
+Malheureusement il n'y a rien de tel encore en C++11/14. Mais Boost.Thread propose cette extension dans son implémentation de ```future```.
+]
+---
+class: center
+# &nbsp;
+# Introduction à Asio
+
+---
+.left-column[
+## Boost.Asio
+]
+.right-column[
+
+La vocation première de Boost.Asio n'est pas d'être un simple exécuteur de tâches asynchrones mais il est assez facile de l'utiliser à cette fin.
+
+L'ordonnancement des tâches est effectué par `service_io`, dont les deux principales fonctions sont:
+- `post()`: ajouter une nouvelle tâche à exécuter
+- `run()` : exécuter les tâches en cours d'attente
+
+Il suffit alors d'exécuter en parallèle `service_io::run()` pour obtenir un task runner simple d'emploi
+- Tout comme ```thread_group```, Asio c'est une bibliothèque *header only*
+]
+---
+.left-column[
+## Boost.Asio
+### Exemple
+]
+.right-column[
+```cpp
+asio::io_service asio_service;
+
+// créer des tâches à exécuter
+for (int i = 0; i < 100; ++i) {
+    asio_service.post([]{
+        // faire quelque chose
+    });
+}
+
+boost::thread_group threads;
+// lancer autant d'exécutions que l'on a de cores
+size_t nbThreads = thread::hardware_concurrency();
+for (size_t i = 0; i < nbThreads; ++i) {
+    threads.create_thread([]{
+        asio_service.run();
+    });
+}
+
+// attendre la fin du traitement
+threads.join_all();```
+]
+--
+.right-column[
+`service_io::run()` rend la main dès qu'il n'y a plus de tâches à exécuter. Les threads créés terminent donc immédiatement leur exécution sans pouvoir être recyclés!
+]
+---
+.left-column[
+## Boost.Asio
+### Exemple
+### Recyclage des threads
+]
+.right-column[
+
+Pour pouvoir recycler les threads, il suffit de créer une instance de `asio::work` afin d'informer Asio qu'il y a un travail non achevé en cours.
+
+Tant que cette instance existera, `service_io::run()` ne rendra pas la main.
+
+```cpp
+asio::io_service asio_service;
+
+// l'instance de work permet de créer des
+// threads en attente permanente d'exécution
+auto asio_work = std::make_unique_ptr<
+    asio::io_service::work>();
+
+boost::thread_group threads;
+size_t nbThreads = thread::hardware_concurrency();
+for (size_t i = 0; i < nbThreads; ++i) {
+    threads.add(std::bind(
+        &asio::service_io::run, asio_service));
+}```
+]
+---
+.left-column[
+## Boost.Asio
+### Exemple
+### Recyclage des threads
+### Exemple
+]
+.right-column[
+```cpp
+// 1er lot de tâches à exécuter
+for (size_t i : irange(0, 100)) {
+    service.post([]{
+        std::this_thread::sleep_for(100ms);
+    });
+}
+// participer au traitement
+service.poll();
+
+// 2eme lot de tâches à exécuter
+for (size_t i : irange(0, 100)) {
+    service.post(std::bind(
+        &std::this_thread::sleep_for, 100ms));
+}
+
+// terminer et détruire le pool
+asio_work.reset();
+threads.join_all();```
+Cet exemple utilise ```poll()``` qui contrairement à ```run()``` rend toujours la main quand il n'y a plus de tâches à exécuter.
+]
+---
+.left-column[
+## Conclusion
+]
+.right-column[
+## Les threads, c'est has-been
+
+## La programmation lock-free, c'est casse-gueule
+
+## Le parallèlisme sans la concurrence, c'est cool
+
+## La programmation Async, c'est hype
+
+## Les coroutines, on n'en n'a pas parlé!
+]
+    </textarea>
+    <script src="remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
