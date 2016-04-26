@@ -500,8 +500,9 @@ auto asio_work = std::make_unique_ptr<
 boost::thread_group threads;
 size_t nbThreads = thread::hardware_concurrency();
 for (size_t i = 0; i < nbThreads; ++i) {
-    threads.add(std::bind(
-        &asio::service_io::run, asio_service));
+    threads.add([&]{
+        asio_service.run();
+    });
 }```
 ]
 ---
@@ -525,7 +526,8 @@ service.poll();
 // 2eme lot de tâches à exécuter
 for (size_t i : irange(0, 100)) {
     service.post(std::bind(
-        &std::this_thread::sleep_for, 100ms));
+        &std::this_thread::sleep_for<
+            size_t, std::milli>, 100ms));
 }
 
 // terminer et détruire le pool
