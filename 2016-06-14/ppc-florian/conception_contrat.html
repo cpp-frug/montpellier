@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>La conception par contrat en C++</title>
+<html>
+  <head>
+    <title>My Awesome Presentation</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body {
+        font-family: 'Droid Serif';
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      li p { line-height: 1.25em; }
+      .red { color: #fa0000; }
+      .large { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      code {
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 20%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 75%;
+        float: right;
+        padding-top: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+class: middle
+layout: true
+---
+class: center, middle, inverse
+
+# Conception par contrat en C++
+
+.right-column[
+.footnote[**Florian Galinier**]
+]
+
+---
+.left-column[
+  ## Origine et concept
+]
+.right-column[ 
+1. Fortement lié à la programmation objet (Eiffel).
+2. Concept proposé fin des années 80 / début 90 par Bertrand Meyer.
+3. Différent de la *programmation défensive*.
+4. Pas (encore ?) dans le standard en C++.
+5. Objectif : créer des programmes sûrs...
+6. ... mais pas forcément plus lourds en production.
+]
+---
+class: center, middle, inverse
+##Un exemple pratique
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+]
+.right-column[ 
+```C++
+class CompteBancaire {
+	private:
+		double solde;
+		double decouvertAutorise;
+	public:
+		CompteBancaire(double solde, 
+					   double decouvertAutorise);
+		double consulter() const;
+		void retirer(double montant);
+		// ...
+};
+```
+]
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+  #### Implémentation
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	if(solde - montant >= decouvertAutorise)
+		solde -= montant;
+}
+```
+]
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+  #### Implémentation
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	if(solde - montant >= decouvertAutorise)
+		solde -= montant;
+}
+// Traitons-nous tous les cas ?
+```
+]
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+  #### Implémentation
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	if(solde - montant >= decouvertAutorise)
+		solde -= montant;
+}
+// Traitons-nous tous les cas ?
+
+int main() {
+	CompteBancaire cb(100, -100);
+	cb.retirer(0);
+	std::cout<<cb.consulter()==100<<std::endl;
+	cb.retirer(50);
+	std::cout<<cb.consulter()==50<<std::endl;
+	cb.retirer(300);
+	std::cout<<cb.consulter()==50<<std::endl;
+}
+```
+]
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+  #### Implémentation
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	if(solde - montant >= decouvertAutorise)
+		solde -= montant;
+}
+// Traitons-nous tous les cas ?
+
+int main() {
+	CompteBancaire cb(100, -100);
+	cb.retirer(0);
+	std::cout<<cb.consulter()==100<<std::endl;
+	cb.retirer(50);
+	std::cout<<cb.consulter()==50<<std::endl;
+	cb.retirer(300);
+	std::cout<<cb.consulter()==50<<std::endl;
+}
+```
+111
+]
+---
+.left-column[
+  ## Un exemple pratique
+  ### Le compte bancaire
+  #### Implémentation
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	if(solde - montant >= decouvertAutorise)
+		solde -= montant;
+}
+// Traitons-nous tous les cas ?
+
+int main() {
+	CompteBancaire cb(100, -100);
+	cb.retirer(0);
+	std::cout<<cb.consulter()==100<<std::endl;
+	cb.retirer(50);
+	std::cout<<cb.consulter()==50<<std::endl;
+	cb.retirer(300);
+	std::cout<<cb.consulter()==50<<std::endl;
+	cb.retirer(-100);
+}
+```
+]
+---
+class: center, middle, inverse
+## Les contrats
+---
+.left-column[
+  ## Les contrats
+]
+.right-column[
+- Pré-conditions
+	- Nécessite d'être vraie au début de la méthode
+- Post-conditions
+	- Vraie à la fin de la méthode 
+]
+---
+.left-column[
+  ## Les contrats
+  ### Appliquons à notre exemple
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	// precondition: montant > 0 &&
+	// solde - montant >= decouvertAutorise
+	auto old_solde = solde;
+	solde = old_solde - montant;
+	// postcondition: solde = old_solde - montant 
+}
+```
+]
+---
+.left-column[
+  ## Les contrats
+  ### Appliquons à notre exemple
+  #### Avec les assertions
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	assert(montant > 0 && 
+		solde - montant >= decouvertAutorise);
+	auto old_solde = solde;
+	solde = old_solde - montant;
+	assert(solde == old_solde - montant);
+}
+```
+]
+---
+.left-column[
+  ## Les contrats
+  ### Appliquons à notre exemple
+  #### Avec les assertions
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	assert(montant > 0 && 
+		solde - montant >= decouvertAutorise);
+	auto old_solde = solde;
+	solde = old_solde - montant;
+	assert(solde == old_solde - montant);
+}
+```
+-	Erreur lors de l'exécution si les contrats sont rompus
+- Peut-être désactivé en production
+]
+---
+.left-column[
+  ## Les contrats
+  ### Appliquons à notre exemple
+  #### Focus sur un point précis
+]
+.right-column[
+```C++
+void CompteBancaire::retirer(double montant) {
+	assert(montant > 0 && 
+		solde - montant >= decouvertAutorise);
+	auto old_solde = solde;
+	solde = old_solde - montant;
+	assert(solde == old_solde - montant);
+}
+```
+Est-ce vraiment à l'appelant de vérifier que l'on ne dépasse pas le découvert ?
+]
+---
+.left-column[
+  ## Les contrats
+  ### Invariant
+]
+.right-column[
+- L'invariant de classe
+```C++
+class CompteBancaire {
+	private:
+		// invariant: solde >= decouvertAutorise
+		double solde;
+		double decouvertAutorise;
+	public:
+		CompteBancaire(double solde, 
+					   double decouvertAutorise);
+		double consulter() const;
+		void retirer(double montant);
+		// ...
+};
+```
+]
+---
+.left-column[
+  ## Les contrats
+  ### Invariant
+  #### Implémentation en C++
+]
+.right-column[
+```C++
+class CompteBancaire {
+	private:
+		bool invariant() const { 
+			return solde >= decouvertAutorise; 
+		}
+		double solde;
+		double decouvertAutorise;
+	public:
+		CompteBancaire(double solde, 
+					   double decouvertAutorise);
+		double consulter() const;
+		void retirer(double montant);
+		// ...
+};
+```
+]
+---
+.left-column[
+  ## Les contrats
+  ### Invariant
+  #### Implémentation en C++
+]
+.right-column[
+Revenons à notre implémentation.
+```C++
+void CompteBancaire::retirer(double montant) {
+	assert(invariant());
+	assert(montant > 0)
+	auto old_solde = solde;
+	if (solde - montant >= decouvertAutorise) {
+		solde = old_solde - montant;
+	}
+	assert(solde == old_solde - montant);
+	assert(invariant());
+}
+```
+]
+---
+.left-column[
+  ## Les contrats
+  ### Invariant
+  #### Implémentation en C++
+]
+.right-column[
+Revenons à notre implémentation.
+```C++
+void CompteBancaire::retirer(double montant) {
+	assert(invariant());
+	assert(montant > 0)
+	auto old_solde = solde;
+	if (solde - montant >= decouvertAutorise) {
+		solde = old_solde - montant;
+	}
+	assert(solde == old_solde - montant);
+	assert(invariant());
+}
+```
+**Les pré-conditions et post-conditions ainsi que les invariants ne peuvent pas avoir d'effet de bord.**
+]
+---
+class: center, middle, inverse
+## Contrats et héritage
+---
+.left-column[
+  ## Contrats et héritage
+]
+.right-column[
+```C++
+class CompteBancaireRetraitMinimum : CompteBancaire {
+	private:
+		double retraitMinimum;
+	public:
+		CompteBancaireRetraitMinimum(double solde, 
+					   double decouvertAutorise,
+					   double retraitMinimum);
+		void retirer(double montant);
+		// ...
+};
+```
+]
+---
+.left-column[
+  ## Contrats et héritage
+  ### Implémentation&nbsp;: facile ?
+]
+.right-column[
+```C++
+void CompteBancaireRetraitMinimum::retirer(double montant) {
+	assert(invariant());
+	assert(montant > retraitMinimum);
+	CompteBancaire::retirer(montant);
+	assert(invariant());
+}
+```
+]
+---
+.left-column[
+  ## Contrats et héritage
+  ### Implémentation&nbsp;: problème
+]
+.right-column[
+```C++
+void CompteBancaireRetraitMinimum::retirer(double montant) {
+	assert(invariant());
+	assert(montant > retraitMinimum);
+	CompteBancaire::retirer(montant);
+	assert(invariant());
+}
+
+void fraisDeCompte(CompteBancaire* cb) {
+	cb->retirer(5);
+}
+
+int main() {
+	CompteBancaire* cb = 
+		new CompteBancaireRetraitMinimum(100,-100,20);
+	fraisDeCompte(cb);
+}
+```
+]
+---
+.left-column[
+  ## Contrats et héritage
+  ### Implémentation&nbsp;: problème
+]
+.right-column[
+Principe de substitution de Liskov :
+- une précondition ne peut pas être renforcée ;
+- une postcondition ne peut pas être affaiblie.
+
+```C++
+void CompteBancaireRetraitMinimum::retirer(double montant) {
+	assert(invariant());
+	assert(montant > retraitMinimum);
+	CompteBancaire::retirer(montant);
+	assert(invariant());
+}
+
+void fraisDeCompte(CompteBancaire* cb) {
+	cb->retirer(5);
+}
+
+int main() {
+	CompteBancaire* cb = 
+		new CompteBancaireRetraitMinimum(100,-100,20);
+	fraisDeCompte(cb);
+}
+```
+]
+---
+class: center, middle, inverse
+##Merci pour votre attention
+```
+assert(no_question());
+```
+
+    </textarea>
+    <script src="remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
