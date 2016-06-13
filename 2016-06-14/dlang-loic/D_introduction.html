@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Le langage D en 10 minutes</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic); 
+
+body {
+        font-family: 'Droid Serif';
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      strong {
+        color: #0086B3;
+      }      
+      li p { line-height: 1.25em; }
+      .red { color: #fa0000; }
+      .large { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      code {
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 20%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child, .left-column h4:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 75%;
+        float: right;
+        /*padding-top: 1em;*/
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse
+
+# Le langage D en 10 minutes
+
+.right-column[
+.footnote[Par **Loïc Hamot**]
+]
+
+---
+## Histoire
+- Créé par Walter Bright en décembre 1999
+  - Principal développeur du compilateur Zortech C++ 
+- Le **D** est un langage de programmation système avec une syntaxe à la **C** et un typage statique.
+- Le **D** est compilé, procédural, orienté objet et générique (multi-paradigmes) conçu pour la programmation système.
+- Son but est de combiner la performance, la sécurité, et l'expressivité
+- Première version en 2001
+- Problème de compatibilité entre les deux bibliothèques standards (Phobos et Tango)
+- D 1.0 en janvier 2007
+- Andrei Alexandrescu rejoint Walter Bright en 2007
+- En juillet 2007, la permière version de D2 sort.
+  - D2 n'est pas compatible avec D1
+  - Il apporte de nouvelles fonctionnalités closure, function pure, const...
+  - Il résout le problème des 2 bibliothèques standards
+
+---
+  
+.left-column[
+## Avantages
+#### Sémantiques
+]
+.right-column[
+#### Sémantique distincte
+]
+--
+.right-column[
+- struct
+  - Sémantique de valeur
+  - Allouée sur la pile
+  - Copiable
+]
+--
+.right-column[
+- class
+  - Sémantique de référence
+  - Allouée dans le tas (GC)
+  - Non copiable (clonable)
+  - Méthode virtuelle
+  - Héritage
+]
+---
+
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+]
+.right-column[
+```D
+import std.range, std.stdio, std.algorithm;
+
+void main() 
+{
+  int[] arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  writeln(arr[3..$]);
+}
+```
+> [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+]
+--
+.right-column[
+```D
+writeln(arr[3..$].stride(2));
+```
+> [3, 5, 7, 9, 11]
+]
+--
+.right-column[
+```D
+writeln(arr[3..$].stride(2).filter!(a => a!=7));
+```
+> [3, 5, 9, 11]
+]
+--
+.right-column[
+```D
+writeln(arr[3..$].stride(2).filter!(a => a!=7).map!"a*2");
+```
+> [6, 10, 18, 22]
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+]
+.right-column[
+- Moins verbeux
+
+```D
+import std.stdio;
+template factorial(int n)
+{
+    enum { factorial = n * .factorial!(n-1) }
+}
+
+template factorial(int n : 1)
+{
+    enum { factorial = 1 }
+}
+
+void test()
+{
+    writefln("%d", factorial!(4));  // prints 24
+}
+```
+- float
+- string
+- mixin
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+]
+.right-column[
+```D
+import std.stdio;
+
+template decimalDigit(int n)
+{
+    const string decimalDigit = "0123456789"[n..n+1];
+}
+
+template itoa(long n)
+{
+    static if (n < 0)
+        const string itoa = "-" ~ itoa!(-n);
+    else static if (n < 10)
+        const string itoa = decimalDigit!(n);
+    else
+        const string itoa = 
+			itoa!(n/10L) ~ decimalDigit!(n%10L);
+}
+
+void main()
+{
+    writeln(itoa!(264));
+}
+```
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+#### @safe
+]
+.right-column[
+#### Functions @safe
+
+Toute opération dangereuse est interdite dans une fonction **@safe**.
+- Cast dangereux
+- Manipulation de pointeur dangereuse
+- Assembler inline
+- Appeler une fonction **@system**
+]
+--
+.right-column[
+#### Functions @trusted
+
+Peut contenir du code _unsafe_ mais quand même être appelé par une fonction **@safe**.
+]
+--
+.right-column[
+#### Functions @system
+
+Peut contenir du code _unsafe_ mais ne peut être appelé par une fonction **@safe**.
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+#### @safe
+#### Contrat
+]
+.right-column[
+##### Pre-post conditions
+```D
+long square_root(long x)
+in{
+    assert(x >= 0);
+}
+out (result){
+    assert((result * result) <= x);
+    assert((result+1) * (result+1) > x);
+}
+body{
+    return cast(long)std.math.sqrt(cast(real)x);
+}
+```
+]
+--
+.right-column[
+##### Invariants
+```D
+class Date{
+    int day;
+    int hour;
+    this(int d, int h){
+        day = d;
+        hour = h;
+    }
+    invariant{
+        assert(1 <= day && day <= 31);
+        assert(0 <= hour && hour < 24);
+    }
+}
+```
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+#### @safe
+#### Contrat
+#### Opérateurs
+]
+.right-column[
+#### La méthode C++
+
+```C++
+struct A{
+    int operator <  (int i);
+    int operator <= (int i);
+    int operator >  (int i);
+    int operator >= (int i);
+};
+int operator <  (int i, A &a) { return a >  i; }
+int operator <= (int i, A &a) { return a >= i; }
+int operator >  (int i, A &a) { return a <  i; }
+int operator >= (int i, A &a) { return a <= i; }
+```
+8 fonctions sont nécessaires.
+]
+--
+.right-column[
+#### La méthode D
+```D
+struct A{
+    int opCmp(int i);
+}
+```
+Le compilateur renvoie vers la fonction **opCmp** losqu'on appelle les opérateurs <, <=, > et >=.
+
+Des règles similaires son appliquées pour les autres opérateurs.
+]
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+#### @safe
+#### Contrat
+#### Operateurs
+#### unittest
+]
+.right-column[
+#### Framework de tests unitaires intégrés
+
+```D
+class Math
+{
+    static int add(int x, int y) { return x + y; }
+
+    unittest
+    {
+        assert(add(2, 2) == 4);
+    }
+}
+
+unittest
+{
+    auto math = new Math();
+    auto result = math.add(2, 2);
+}
+```
+- Une option de compilation (-unittest) entraîne l'inclusion du code de test dans l'exécutable résultant, ainsi que son exécution.
+
+- Les test unitaires peuvent être inclus dans la doc en tant qu'exemple.
+]
+
+---
+.left-column[
+## Avantages
+#### Sémantiques
+#### Ranges
+#### Template
+#### static_if
+#### @safe
+#### Contrat
+#### Opérateurs
+#### unittest
+#### Autre
+]
+.right-column[
+- The D style
+- Génération de documentation
+- Modules
+- Temps de compilation
+- Unicode source text
+- Compatibility with C ABI
+- Language safe
+##### Bound checking (désactivable)
+##### Garbage collector
+]
+---
+class: center, middle, inverse
+
+# Envie de convertir un projet **C++** en **D**?
+## https://github.com/lhamot/CPP2D
+
+---
+
+class: center, middle, inverse
+
+# Esayez le **D**!
+## https://dlang.org
+
+    </textarea>
+    <!--<script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">-->
+    <script src="../../2016-04-19/remark.js">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
