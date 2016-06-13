@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QML and QtQuick</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style-perso.css">
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse
+
+# QML & QtQuick
+Easily build fluid animated user interfaces, connect them to C++
+
+.right-column[
+.footnote[Par **Amine Bachri**]
+]
+---
+.left-column[
+  ## Plan
+]
+.right-column[
+## Usage
+## QML
+## Connexion avec C++(Qt)
+## Exemples
+]
+---
+.left-column[
+  ## Utilisation
+]
+.right-column[
+**Langages**
+ - C++ (Qt)
+
+- Python (PyQt et PySide)
+]
+--
+.right-column[
+**Supports**
+ - Windows, Linux, Android, iOS 
+
+ - Systèmes embarqués
+]
+
+---
+.left-column[
+  ## QML
+]
+.right-column[
+
+Un premier **document** QML :
+```qml
+//Bonjour.qml
+import QtQuick 2.3
+Rectangle {
+    width: 200 ; height: 100
+    color: "red"
+    Text {
+        anchors.centerIn: parent
+        text: "Hello, World!"
+    }
+}
+```
+
+- Un document QML a un élément racine unique qui définit les comportements et propriétés de ce composant
+
+- Import du **module** *QtQuick* 
+
+- Les éléments sont hiérarchisés : un **Rectangle** racine, avec un enfant **Text**
+]
+
+---
+.left-column[
+  ## Poupées russes
+]
+.right-column[
+Création d'un **Composant** *MyButton*
+```qml
+//MyButton.qml
+import QtQuick 2.0
+
+Rectangle {
+    id : root
+    property int largeur : 100
+    property alias textButton : label
+    signal clic(string r)
+    width: root.largeur
+    height: 40    
+    Text {
+        id : label
+        anchors.centerIn: parent
+        text: "défaut"
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked:(label.text !="")?clic(label.text):{}
+    }
+}```
+
+ - **Attribut** *id* identifiant unique dans un fichier QML 
+ - **Binding** pour l'attribut ```width``` du rectangle
+ - Définition du **signal** *clic*
+ - Utilisation élémentaire de **JavaScript**
+]
+---
+.left-column[
+  ## Poupées russes
+]
+.right-column[
+```qml
+//qml.qml
+import QtQuick 2.0
+MyButton{
+    largeur: 200
+    textButton.text: ""    
+    onClic: console.log(r)
+}
+```
+
+Syntaxe : 
+
+ - La majuscule pour le fichier du Composant *MyButton.qml*
+
+ - L'accès complet à un Composant enfant (label) par son alias *textButton*
+
+ - Récupération du **signal** : 
+  - La syntaxe du **signalHandler** ``` on[NomDuSignal]```      
+  - L'utilisation de la variable définie par le signal
+]
+---
+.left-column[
+  ##JavaScript
+]
+.right-column[
+*Qu'est-il possible de faire dans QML avec javascript? *
+
+- Intégration de bibliothèques
+
+- Intégration complète dans Qt :
+ - Utilisation complète des signaux et slots 
+ - l'objet global Qt peut-être utilisé (sans déclaration): 
+   ```color: Qt.rgba(1, 0, 0, 1) ```
+ - Utilisation des types spécifiques : ```font```,```point```, ```rect```, ```size```, ...
+ - Propriétés ```qsTr```, ```formatDateTime```, et ```application```
+
+- Création d'objets et de Composants  :
+ - Avec une chaine de caractère : ```createQmlObject``` 
+ - En script : ```createComponent``` / ```createObject```
+ - Destruction d'un composant dynamiquement créé
+ - Traitement de ```onCompleted``` aprés  l'"*instantiation*"
+
+- Référence à un objet javascript global (.pragma)]
+--
+.right-column[###[Avoid JavaScript Code](https://www.youtube.com/watch?v=vzs5VPTf4QQ)]
+---
+.left-column[
+  ## Quelques Composants
+]
+.right-column[
+- Rectangle, Text, TextArea, TextEdit
+
+- MouseArea
+
+- Column, ListView
+```qml
+//ListeQML.qml
+ListView {
+      width: 180; height: 200
+      model: qmlModel
+
+      delegate: Text {
+          text: name + ": " + number
+      }
+
+      ListModel {
+      id : qmlModel
+        ListElement {name: "Bill Smith"; number: "364"}
+        ListElement {name: "John Brown"; number: "846"}
+      }
+}
+```
+- Boutons, radios, combos, arbres
+
+- Windows, ApplicationWindows ( à partir de  : ```import QtQuick.Window 2.2```)
+]
+---
+.left-column[
+##Quelques Composants
+]
+.right-column[
+- Signals et slots (connexions), timers
+
+- States et Transitions
+
+```qml
+import QtQuick 2.0
+Rectangle {
+    id: rect
+    width: 100; height: 100
+    color: "red"
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+    }
+    states: State {
+        name: "moved"; when: mouseArea.pressed
+        PropertyChanges { target: rect; x: 50; y: 50 }
+    }
+    transitions: Transition {
+        NumberAnimation { properties: "x,y"; 
+        easing.type: Easing.InOutQuad }
+    }
+}
+```
+- Animations : sur les tailles, les couleurs, les opacités, le positionnement (path, rotation)
+
+- Loader
+]
+---
+.left-column[
+
+##Connexions avec C++
+]
+.right-column[
+
+```C++
+//message.h
+class Message : public QObject
+{   Q_OBJECT
+    Q_PROPERTY(QString author READ author
+               WRITE setAuthor NOTIFY authorChanged)
+public:
+    void setAuthor(const QString &a) {
+        if (a != m_author) {
+            m_author = a;
+            emit authorChanged();
+        }
+    }
+    QString author() const { return m_author;}
+signals:
+    void authorChanged();
+private:
+    QString m_author;
+};
+```
+
+```qml
+// MyItem.qml
+MessageEditor {
+    width: 100; height: 100
+    Text{
+      text: msg.author
+      onAuthorManuallyChanged : msg.author = newAuthor
+    }
+}
+```]
+---
+```C++
+//messagemanager.h
+Message msg;
+myQuickView->engine()->rootContext()->setContextProperty("msg", &msg);
+```
+
+.left-column[
+##Listes
+]
+.right-column[
+```qml
+ListView {
+    width: 100; height: 100
+
+    model: myModel
+    delegate: Rectangle {
+        height: 25
+        width: 100
+        Text { text: modelData }
+    }
+}
+```
+
+```C++
+QStringList dataList;
+dataList.append("Item 1");
+dataList.append("Item 2");
+dataList.append("Item 3");
+
+QQuickView view;
+QQmlContext *ctxt = view.rootContext();
+ctxt->setContextProperty("myModel", 
+                        QVariant::fromValue(dataList));
+```
+]
+
+---
+.left-column[
+##Outils disponibles
+]
+.right-column[
+- Debugger
+
+- Designer
+
+- Possibilité de ralentir les animations
+
+- QML profiler
+
+- Documentation extensive écrite et vidéos
+
+## http://doc.qt.io/qt-5/qmlapplications.html
+]
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
+
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create({
+      highlightLanguage: 'qml',
+      highlightStyle : 'default'
+      });
+    </script>
+  </body>
+</html>

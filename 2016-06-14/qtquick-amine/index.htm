@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QML and QtQuick</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="style-perso.css">
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse
+
+# QML & QtQuick
+Easily build fluid animated user interfaces, connect them to C++
+
+.right-column[
+.footnote[Par **Amine Bachri**]
+]
+---
+.left-column[
+  ## Plan
+]
+.right-column[
+## Usage
+## QML
+## Connexion avec C++(Qt)
+## Exemples
+]
+---
+.left-column[
+  ## Utilisation
+]
+.right-column[
+**Langages**
+ - C++ (Qt)
+
+- python (PyQt et PySide)
+
+- Go
+]
+--
+.right-column[
+**Supports**
+ - Windows
+ - Linux
+ 
+ - Smartphones : iphone et Android
+
+ - Embarqués
+]
+
+---
+.left-column[
+  ## QML
+]
+.right-column[
+
+Un premier **document** QML :
+```qml
+//Bonjour.qml
+import QtQuick 2.3
+Rectangle {
+    width: 200
+    height: 100
+    color: "red"
+    Text {
+        anchors.centerIn: parent
+        text: "Hello, World!"
+    }
+}
+```
+
+- Un document QML a un élément racine unique qui définit les comportements et propriétés de ce composant
+
+- Import du *QtQuick* **module**
+
+- Les éléments sont hiérarchisés : un **Rectangle** racine, avec un enfant **Text**
+
+- a revoir^^^^^^Les variables ont une portée accessibles aux enfants
+
+]
+
+---
+.left-column[
+  ## Poupées russes
+]
+.right-column[
+```qml
+//MyButton.qml
+import QtQuick 2.0
+Rectangle {
+    id : root
+    property int largeur : 100
+    property alias textButton : label
+    signal clic(string r)
+    width: root.largeur
+    height: 40    
+    Text {
+        id : label
+        anchors.centerIn: parent
+        text: "défaut"
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked:(label.text !="")?clic(label.text):{}
+    }
+}```
+
+Quelques éléments de syntaxe : 
+ - L'**attribut** *id* identifiant unique dans un fichier QML 
+ - Le **binding** pour l'attribut ```width``` du rectangle
+ - La définition du **signal** clic
+ - Une utilisation élémentaire de **JavaScript**
+]
+---
+.left-column[
+  ## Poupées russes
+]
+.right-column[
+Nous avons donc créé un **Composant** *MyButton*
+```qml
+//qml.qml
+import QtQuick 2.0
+MyButton{
+    largeur: 200
+    textButton.text: ""    
+    onClic: console.log(r)
+}
+```
+
+Quelques éléments de syntaxe : 
+
+ - La *Majuscule* pour le fichier du Composant *MyButton.qml*
+
+ - L'accès complet à un Composant enfant (label) par son alias *textButton*
+
+ - Récupération du **signal** : 
+
+      La syntaxe du **signalHandler** ``` on[NomDuSignal]```      
+      L'utilisation de la variable définie par le signal
+
+   
+
+]
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create({
+      highlightLanguage: 'qml',
+      highlightStyle : 'default'
+      });
+    </script>
+  </body>
+</html>
