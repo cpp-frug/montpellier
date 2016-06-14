@@ -213,11 +213,11 @@ void CompteBancaire::retirer(double montant) {
 int main() {
 	CompteBancaire cb(100, -100);
 	cb.retirer(0);
-	std::cout<<cb.consulter()==100<<std::endl;
+	std::cout<<(cb.consulter()==100);
 	cb.retirer(50);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50);
 	cb.retirer(300);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50)<<std::endl;
 }
 ```
 ]
@@ -238,11 +238,11 @@ void CompteBancaire::retirer(double montant) {
 int main() {
 	CompteBancaire cb(100, -100);
 	cb.retirer(0);
-	std::cout<<cb.consulter()==100<<std::endl;
+	std::cout<<(cb.consulter()==100);
 	cb.retirer(50);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50);
 	cb.retirer(300);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50)<<std::endl;
 }
 ```
 111
@@ -264,11 +264,11 @@ void CompteBancaire::retirer(double montant) {
 int main() {
 	CompteBancaire cb(100, -100);
 	cb.retirer(0);
-	std::cout<<cb.consulter()==100<<std::endl;
+	std::cout<<(cb.consulter()==100);
 	cb.retirer(50);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50);
 	cb.retirer(300);
-	std::cout<<cb.consulter()==50<<std::endl;
+	std::cout<<(cb.consulter()==50)<<std::endl;
 	cb.retirer(-100);
 }
 ```
