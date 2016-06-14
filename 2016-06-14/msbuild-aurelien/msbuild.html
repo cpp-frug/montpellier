@@ -128,80 +128,138 @@ class: center, middle, inverse
 layout: false
 .left-column[
   ## Introduction
-  ## Concepts
 ]
 .right-column[
-MSBuild est le *build engine* (système de construction) de Microsoft, c.à.d l'outil qui s'occupe de:
+## Microsoft Build Engine
+
+MSBuild est le *build engine* (moteur de construction) de Microsoft.
+
+C'est un projet Open Source (licence MIT) disponible sous [GitHub](https://github.com/Microsoft/msbuild) qui est officiellement supporté et documenté par Microsoft.
+
+MSBuild peut être compilé sous OS X et Ubuntu, mais son utilisation reste très liée à l'univers Microsoft.
+- Mono fournit sa propre implémentation (**xbuild**) qui supporte les projets .Net... mais pas C++!
+
+Précision importante: si Visual Studio dépend de MSBuild, **MSBuild ne dépend pas de Visual Studio**!
+- c'est un outil séparé qui fonctionne en ligne de commande
+]
+---
+layout: false
+.left-column[
+  ## Introduction
+  ## Utilité
+]
+.right-column[
+## Pour quoi faire?
+
+En tant que build engine, MSBuild répond au besoin d'**automatiser les tâches de construction** d'un logiciel, à savoir:
  - compiler l'intégralité du code source (full build)
- - recompiler un projet et ses dépendances suite à une modification
+ - recompiler uniquement ce qui est nécessaire suite à une modification (incremental build)
  - copier les binaires
+ - générer de la documentation
+ - effectuer le packaging
  - lancer des scripts avant / après les builds
- - génération de documentation
  - etc...
-
-Il répond au besoin d'automatiser les tâches de construction d'un logiciel. Par rapport à des scipts shell, les commandes sont exécutées seullement si nécessaire.
+]
+--
+.right-column[
+Par rapport à des scripts shell, un build engine **exécute ses commandes seulement si nécessaire**.
 ]
 ---
 layout: false
 .left-column[
   ## Introduction
-  ## Concepts
-  ## Exemples
-]
-.right-column[
-Principe général:
- - déclaration de tâches / règles à exécuter au moyen d'un langage (souvent déclaratif, de type DSL)
- - orchestration des tâches en fonction de certains critères (gestion de conditions)
-
-GNU Make (1977) est le pionnier en la matière et constitue un standard dans le monde Unix. C'est un build system orienté shell:
- - facilement extensible via des appels au système
- - mais couplage fort avec l'OS
-
-D'ailleurs, Microsoft a proposé dès les débuts de l'ère 16 bits son propre outil make (nmake) s'appuyant sur des fichiers *.mak* et la ligne de commande DOS.
-]
----
-layout: false
-.left-column[
-  ## Introduction
-  ## Concepts
-  ## Historique
-]
-.right-column[
-Avec Visual Studio sont apparus les fichiers projets (.dsp) dans un format binaire jusqu'à la version 6. A l'apparition de .Net et de la mode XML (Visual Studio 2002), les fichiers projets ont évolué vers le format XML (.vcproj / .csproj) valable jusqu'à VS 2008 inclus.
-
-A partir de VS 2010, les fichiers projets sont des scripts MSBuild à part entière (.vcxproj / .csproj)
- - Visual Studio est devenu un front-end graphique à MSBuild!
-
-MSBuild est un projet Open Source disponible sous GitHub. Il est officiellement supporté et documenté de la part de Microsoft.
-
-Pour autant, il reste spécifique au monde Windows, même si des projets sont parvenus à le faire fonctionner sous Linux/Mono.
-
-
- Systèmes basés sur un langage dynamique:
- - Python pour SCons
- - Ruby pour Rake
- - QML (javascript) pour Qbs
- - Groovy pour Gradle...
- 
-Systèmes basés sur Xml:
- - Apache Ant (orienté Java), apparu en 2000
- - NAnt (orienté .Net)
-]
-
----
-layout: false
-.left-column[
+  ## Utilité
   ## Principes
 ]
 .right-column[
+## Principe général
 
-Un dialecte XML est utilisé pour rédiger ses scripts de façon purement déclarative:
+Un build engine distingue en général:
+ - la **déclaration** de tâches / règles à exécuter au moyen d'un langage souvent déclaratif (de type DSL)
+ - l'**orchestration** des tâches en fonction de certains critères (expressions conditionnelles)
+]
+--
+.right-column[
+Make (1977) est le pionnier en la matière et constitue une référence dans le monde Unix... et au delà!
+- GNU Make en est l'implémentation standard sous Linux et OS X
+]
+--
+.right-column[
+Microsoft a proposé dès ses débuts (à l'ère du 16 bits) son propre outil similaire : **nmake**!
+- basé sur des fichiers *.mak* et ligne de commande DOS
+]
+---
+layout: false
+## Il existe de nombreux moteurs de build...
+
+Ceux basés sur une **syntaxe à la make** que l'on peut qualifier d'**orienté shell**:
+- syntaxe déclarative (makefiles) étendue via des appels au système (shell POSIX, prompt DOS...)
+- CMake, qmake, nmake, Ninja...
+
+--
+
+Ceux basés sur un (dialecte de) **langage dynamique**:
+- style plus impératif car intimement lié à un langage de programmation
+- Python pour SCons, Groovy pour Gradle, Javascript pour Grunt, Ruby pour Rake, Lua pour Premake, QML pour Qbs, ...
+
+--
+
+Ceux basés sur **XML** (pour la partie déclarative) et un **langage compilé** (pour l'extensibilité):
+- Ant (Java), NAnt (.Net)...
+--
+
+- et MSBuild!
+---
+layout: false
+## Historique
+
+Les (très) anciennes versions de Visual Studio utilisaient des fichiers projets dans un format binaire (.dsp).
+
+Avec l'arrivée de .Net (2002), la version 7 introduit le format XML. C'est à cette époque que se développe NAnt (clone d'Ant pour .Net) pour pallier aux défauts de l'IDE de Microsoft.
+
+--
+
+MSBuild fait son apparition en 2005. Mais il ne permet pas encore de compiler les projets C++ (qui utilisent VCBuild).
+- cela restera le cas jusqu'à VS 2008 inclus.
+
+--
+
+A partir de VS 2010, tous les fichiers projets deviennent des scripts MSBuild à part entière (.vcxproj / .csproj)
+ - et Visual Studio devient un front-end graphique à MSBuild!
+
+---
+## Concepts
+De façon intéressante, MSBuild est un retour aux fondamentaux de *make* :
+- l'**utilisateur déclare** les données de départ (code source) ainsi que ce qui est attendu à l'arrivée
+- l'**outil décide** de lui-même quoi faire et dans quel ordre le faire
+
+MSBuild se positionne en effet comme une *plateforme de construction d'applications* qui libère l'utilisateur de la gestion des dépendances (MSBuild se charge d'automatiser cet aspect).
+
+--
+
+Pour cela, la distinction est faite entre cible (*target*) et tâche (*task*):
+- une **cible déclare** un ensemble de *tâches* à exécuter
+- une **tâche exécute** un traitement sur une entrée pour produire un résultat
+
+MSBuild sait interpréter les entrées / sorties des tâches (voir la notion d'**items**), ce qui lui permet d'analyser les dépendances **au niveau des cibles**.
+
+--
+
+Dit autrement:
+- un tâche **effectue** une action simple sans se poser de questions
+- l'exécution conditionnelle d'une tâche est **exprimée** au niveau des cibles
+
+---
+layout: false
+## Syntaxe des cibles
+
+Un dialecte (schéma) XML est utilisé pour rédiger ses scripts de façon purement déclarative:
  - les balises XML remplacent l'appel direct à une commande système
- - MSBuild propose un ensemble de tags XML qu'il faut apprendre
+ - MSBuild propose un ensemble de tags XML qu'il faut apprendre...
 
 Exemple:
 ```xml
-<Target Name="DeleteTempFiles">
+<Target Name="DeleteTempFiles" AfterTargets="Build">
 
   <Message Text="Suppression des fichiers temporaires" />
   
@@ -209,16 +267,13 @@ Exemple:
   
 </Target>
 ```
-
-Il est possible d'étendre la syntaxe (créer ses propres balises) au moyen de plugins .Net qui exposent des tâches (`Message`, `Delete`, ...).
- - les tâches acceptent des paramètres en entrée comme en sortie
-]
+--
+La cible *DeleteTempFiles* exécute les tâches `Message` et `Delete`, tâches standard offertes par MSBuild.
+- voir [MSBuild Task Reference](https://msdn.microsoft.com/fr-fr/library/7z253716.aspx) pour la liste complète
 ---
 layout: false
-.left-column[
-  ## Inclusions
-]
-.right-column[
+## Inclusion de scripts
+
 Une des fonctionnalités de base de MSBuild est la capacité d'inclure d'autres fichiers MSBuild.
 
 ```xml
@@ -226,7 +281,12 @@ Une des fonctionnalités de base de MSBuild est la capacité d'inclure d'autres 
 <Import Project="$(MyProject).props"
   Condition="Exists('$(MyProject).props')" />
 ```
-C'est principalement ce qui distingue un projet C++ d'un projet C#: les *property sheets* qui sont incluses.
+
+--
+
+C'est principalement ce qui distingue un projet C++ d'un projet C# :
+- Les *property sheets* incluses déterminent quels tags XML sont disponibles.
+
 ```xml
 <Import
   Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -235,18 +295,16 @@ C'est principalement ce qui distingue un projet C++ d'un projet C#: les *propert
 <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 ```
 
-Ainsi, la majorité des fonctionnalités offertes le sont au moyen:
+--
+
+MSBuild expose ainsi l'essentiel de ses fonctionnalités au moyen:
  - des scripts (*.props*, *.xml*, *.targets*) livrés avec MSBuild  (*C:\Program Files (x86)\MSBuild*)
  - des assemblies .Net les accompagnant (implémentation des tâches référencées dans les scripts)
-
-]
 ---
 layout: false
-.left-column[
-  ## Principes
-]
-.right-column[
-Si les tâches correspondent en quelque sorte aux fonctions d'un langage impératif, l'équivalent des variables sont les propriétés et les items.
+## Propriétés
+
+Si les tâches correspondent en quelque sorte aux fonctions d'un langage impératif, l'équivalent des variables sont les propriétés (et les items).
 
 ```xml
 <AppVersion>1.7.4</AppVersion>
@@ -263,21 +321,20 @@ APPNAME=MonLogiciel $APPVERSION
 set APPVERSION=1.7.4
 set APPNAME=MonLogiciel %APPVERSION%
 ```
+--
 
-Une propriété référencée ainsi alors qu'elle n'a jamais été initialisée:
+Une propriété référencée sans jamais avoir été affectée:
 - sera remplacée par une chaîne vide lors de son expansion
 - ou part la valeur d'une variable d'environnement de même nom si cette dernière existe
-]
+
 ---
 layout: false
-.left-column[
-  ## Principes
-]
-.right-column[
-Bon à savoir:
- - toutes les propriétés définies le sont globalement (et sont donc partagées avec les fichiers inclus)
- - leur valeur est déterminée ligne par ligne au fil de la lecture et non de l'interprétation dynamique
- - elles suivent les principes habituels d'affectation / concaténation:
+## Bon à savoir
+
+Toutes les propriétés définies le sont globalement (pas de scope local).
+- Elles sont donc partagées avec les fichiers inclus...
+
+Elles suivent les principes habituels d'affectation / concaténation:
 
  ```xml
 <Numbers>2</Numbers>
@@ -291,7 +348,6 @@ NUMBERS =1;$NUMBERS
 NUMBERS+=3
 ```
 
-]
 ---
 ## D'où l'erreur classique...
 
@@ -310,7 +366,70 @@ Où est le problème?
 
 Les chemins d'inclusions hérités ont été écrasés (et donc perdus) au lieu d'être complétés!
 
-Le code qui compilait très bien jusque là se met à ne plus compiler...
+Et le code qui compilait très bien jusque là se met à ne plus compiler...
+---
+layout: false
+## Conditions
+
+Chaque balise XML accepte l'attribut `Condition` :
+
+ ```xml
+<PropertyGroup>
+  <RevisionInfo Condition="'$(REV_NUMBER)'!=''">rev. $(REV_NUMBER)</BuildType>
+</PropertyGroup>
+
+<Target Name="CheckBuildInfos" BeforeTargets="Build">
+
+  <Error Condition="'$(APP_VERSION)'==''"
+    Text="$APP_VERSION is not defined!" />
+  
+  <Message Importance="high"
+    Text="Building version $(APP_VERSION) $(RevisionInfo)" />
+  
+  <Error Condition="!Exists('Documentation.pdf')"
+    Text="You forgot to update the documentation!" />
+    
+</Target>
+```
+
+Exemples d'[opérateurs supportés](https://msdn.microsoft.com/fr-fr/library/7szfhaft.aspx):
+- `'stringA' == 'stringB'`
+- `('stringA' != 'stringB') And Exists('stringA')`
+- `!HasTrailingSlash('stringA')`
+
+---
+
+## Ordre d'éxécution des cibles (targets)
+
+Les cibles sont déclarées avec le tag `Target` et leur ordonnancement peut être contrôlé de [diverses façons](https://msdn.microsoft.com/fr-fr/library/ee216359.aspx):
+
+```xml
+<Target Name="T2" DependsOnTargets="T1;T2" />
+
+<Target Name="T2"
+    AfterTargets="T1"
+    BeforeTargets="T3" />
+```
+
+--
+
+Au niveau du fichier projet lui-même (.vcxproj), il est possible de définir une cible par défaut, typiquement *Build* :
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Project
+  DefaultTargets="Build"
+  ToolsVersion="4.0"
+  xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+</Project>
+```
+
+C'est elle qui sera exécutée quand aucune cible particulière n'est précisée (en ligne de commande) à MSBuild.
+---
+
+
+
 </textarea>
     <script src="remark.js" type="text/javascript">
     </script>
