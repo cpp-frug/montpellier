@@ -331,10 +331,16 @@ Une propriété référencée sans jamais avoir été affectée:
 layout: false
 ## Bon à savoir
 
-Toutes les propriétés définies le sont globalement (pas de scope local).
-- Elles sont donc partagées avec les fichiers inclus...
+Les propriétés peuvent être définies à partir d'une variable d'environnement, d'une clé du registre Windows ou de la ligne de commande passée à MSBuild.
 
-Elles suivent les principes habituels d'affectation / concaténation:
+
+Celles qui définies en dehors d'un tag `Target` ont une portée globale.
+- et sont donc partagées avec tous les fichiers inclus!
+- c'est le principe des *property sheets* de Visual Studio
+
+--
+
+Les propriétés sont soumises aux règles habituelles d'affectation / concaténation:
 
  ```xml
 <Numbers>2</Numbers>
